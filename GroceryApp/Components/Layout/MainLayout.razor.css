@@ -6,7 +6,30 @@
 
 main {
     flex: 1;
+    display: flex;
+    flex-direction: column;
 }
+
+article {
+    flex: 1;
+}
+
+.app-footer {
+    background-color: #f7f7f7;
+    border-top: 1px solid #d6d5d5;
+    color: #6c757d;
+    padding-bottom: 0.75rem;
+    padding-top: 0.75rem;
+    text-align: center;
+}
+
+    .app-footer ::deep a {
+        text-decoration: none;
+    }
+
+    .app-footer ::deep a:hover {
+        text-decoration: underline;
+    }
 
 .sidebar {
     background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
@@ -50,7 +73,6 @@ main {
     .page {
         flex-direction: row;
     }
-
     .sidebar {
         width: 250px;
         height: 100vh;
