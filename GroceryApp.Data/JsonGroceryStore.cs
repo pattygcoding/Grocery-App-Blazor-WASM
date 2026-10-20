@@ -22,8 +22,18 @@ public abstract class JsonGroceryStore : IGroceryStore
             return Array.Empty<GroceryItem>();
         }
 
-        return JsonSerializer.Deserialize(json, GroceryJsonContext.Default.ListGroceryItem)
-               ?? new List<GroceryItem>();
+        try
+        {
+            return JsonSerializer.Deserialize(json, GroceryJsonContext.Default.ListGroceryItem)
+                   ?? new List<GroceryItem>();
+        }
+        catch (JsonException)
+        {
+            // Browser storage can hold a payload written by an older build, or simply be corrupted.
+            // Treat it as "nothing stored" so the repository seeds a fresh catalogue and rewrites
+            // the payload, instead of failing every page that touches the data.
+            return Array.Empty<GroceryItem>();
+        }
     }
 
     /// <summary>

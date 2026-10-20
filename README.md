@@ -8,7 +8,7 @@ There is **no server, no database and no API**: C# runs in the browser via WebAs
 catalogue is persisted to the browser's `localStorage`, and the Excel report is generated
 client side. The whole thing is published as static files to GitHub Pages.
 
-🔗 **Live demo:** <https://blazor.pattygcoding.com>
+**Live demo:** <https://blazor.pattygcoding.com>
 
 ## What changed compared to the Blazor Server original
 

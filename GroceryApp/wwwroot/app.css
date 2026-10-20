@@ -1144,7 +1144,8 @@ select.invalid,
     padding: var(--space-8) 0;
 }
 
-/* Blazor error UI ----------------------------------------------------------- */
+/* Blazor error UI. The markup lives in index.html (the only copy in the app), because it has to
+   exist before Blazor boots to be able to report a start-up failure. */
 
 #blazor-error-ui {
     background-color: var(--danger-soft);
@@ -1154,7 +1155,9 @@ select.invalid,
     color: var(--text);
     display: none;
     left: 0;
-    padding: var(--space-3) var(--space-6);
+    /* The framework shows this element with display:block and attaches the dismiss handler itself,
+       so the layout is block based and the close control is positioned rather than flexed. */
+    padding: var(--space-3) calc(var(--space-6) + 36px) var(--space-3) var(--space-6);
     position: fixed;
     width: 100%;
     z-index: 1000;
@@ -1167,11 +1170,26 @@ select.invalid,
 }
 
 #blazor-error-ui .dismiss {
+    align-items: center;
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
     cursor: pointer;
+    display: inline-flex;
+    height: 28px;
+    justify-content: center;
     position: absolute;
     right: var(--space-4);
     top: 50%;
     transform: translateY(-50%);
+    width: 28px;
+}
+
+#blazor-error-ui .dismiss:hover {
+    background-color: var(--surface);
+    border-color: var(--danger-border);
+    color: var(--text);
 }
 
 /* Bootstrap compatibility --------------------------------------------------- */
@@ -1513,10 +1531,19 @@ select.invalid,
 }
 
 .flow {
+    align-items: center;
     color: var(--text-muted);
+    display: flex;
+    flex-wrap: wrap;
     font-family: var(--font-mono);
     font-size: var(--text-sm);
+    gap: var(--space-2);
     word-break: break-word;
+}
+
+.flow__arrow {
+    color: var(--text-subtle);
+    vertical-align: 0;
 }
 
 .flow code {
