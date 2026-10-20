@@ -1,0 +1,397 @@
+@page "/reports"
+@using GroceryApp.Services
+@using GroceryApp.Models.DTOs
+@using GroceryApp.Models
+@inject IGroceryService GroceryService
+@inject IExcelExportService ExcelExportService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Reports</PageTitle>
+
+<h1>Grocery Reports</h1>
+
+@if (groceries == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <!-- Profit Summary -->
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Profit Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-success text-white rounded">
+                                <h4>$@totalProfitPotential.ToString("F2")</h4>
+                                <small>Total Profit Potential</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-primary text-white rounded">
+                                <h4>$@averageProfitPerItem.ToString("F2")</h4>
+                                <small>Average Profit per Item</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-warning text-dark rounded">
+                                <h4>@totalItemsInStock</h4>
+                                <small>Total Items in Stock</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-info text-white rounded">
+                                <h4>@totalCategories</h4>
+                                <small>Product Categories</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report 1: Profit by Category -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Profit by Category</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="categoryTable" class="table table-sm sortable-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable">Category</th>
+                                    <th class="sortable">Items</th>
+                                    <th class="sortable">Total Stock</th>
+                                    <th class="sortable">Avg Profit</th>
+                                    <th class="sortable">Total Potential</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var category in categoryStats)
+                                {
+                                    <tr>
+                                        <td><span class="badge @GetCategoryClass(category.Category)">@category.Category</span></td>
+                                        <td>@category.ItemCount</td>
+                                        <td>@category.TotalStock</td>
+                                        <td>$@category.AverageProfit.ToString("F2")</td>
+                                        <td>$@category.TotalPotentialProfit.ToString("F2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report 2: Top Profitable Items -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Top 10 Most Profitable Items</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="profitableTable" class="table table-sm sortable-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable">Item</th>
+                                    <th class="sortable">Category</th>
+                                    <th class="sortable">Profit</th>
+                                    <th class="sortable">Margin %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in topProfitableItems.Take(10))
+                                {
+                                    <tr>
+                                        <td>@item.Name</td>
+                                        <td><span class="badge @GetCategoryClass(item.Category)">@item.Category</span></td>
+                                        <td>$@((item.Price - item.CostToProduce).ToString("F2"))</td>
+                                        <td>@(((item.Price - item.CostToProduce) / item.Price * 100).ToString("F1"))%</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report 3: Stock Analysis -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Stock Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="stockTable" class="table table-sm sortable-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable">Status</th>
+                                    <th class="sortable">Items</th>
+                                    <th class="sortable">Total Stock</th>
+                                    <th class="sortable">Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="table-success">
+                                    <td>High Stock (>5)</td>
+                                    <td>@highStockItems.Count()</td>
+                                    <td>@highStockItems.Sum(i => i.Stock)</td>
+                                    <td>$@(highStockItems.Sum(i => i.Stock * i.Price).ToString("F2"))</td>
+                                </tr>
+                                <tr class="table-warning">
+                                    <td>Low Stock (1-5)</td>
+                                    <td>@lowStockItems.Count()</td>
+                                    <td>@lowStockItems.Sum(i => i.Stock)</td>
+                                    <td>$@(lowStockItems.Sum(i => i.Stock * i.Price).ToString("F2"))</td>
+                                </tr>
+                                <tr class="table-danger">
+                                    <td>Out of Stock (0)</td>
+                                    <td>@outOfStockItems.Count()</td>
+                                    <td>0</td>
+                                    <td>$0.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report 4: Price Range Analysis -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Price Range Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="priceRangeTable" class="table table-sm sortable-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable">Price Range</th>
+                                    <th class="sortable">Items</th>
+                                    <th class="sortable">Avg Cost</th>
+                                    <th class="sortable">Avg Profit</th>
+                                    <th class="sortable">Profit Margin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var range in priceRangeStats)
+                                {
+                                    <tr>
+                                        <td>@range.Range</td>
+                                        <td>@range.ItemCount</td>
+                                        <td>$@range.AverageCost.ToString("F2")</td>
+                                        <td>$@range.AverageProfit.ToString("F2")</td>
+                                        <td>@range.ProfitMarginPercent.ToString("F1")%</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Options -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Export Options</h5>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-success me-2" @onclick="ExportToExcel" disabled="@isExporting">
+                        @if (isExporting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        <i class="bi bi-file-earmark-excel"></i> Export to Excel
+                    </button>
+                    <small class="text-muted">Download a comprehensive Excel report with all data and metrics</small>
+                    <div class="text-muted mt-2">
+                        <small>The workbook is generated in your browser - there is no server involved.</small>
+                    </div>
+                    @if (!string.IsNullOrEmpty(exportError))
+                    {
+                        <div class="alert alert-danger mt-3 mb-0">@exportError</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private IEnumerable<GroceryItemDto>? groceries;
+    private decimal totalProfitPotential;
+    private decimal averageProfitPerItem;
+    private int totalItemsInStock;
+    private int totalCategories;
+
+    // Report data
+    private List<CategoryStat> categoryStats = new();
+    private List<GroceryItemDto> topProfitableItems = new();
+    private List<GroceryItemDto> highStockItems = new();
+    private List<GroceryItemDto> lowStockItems = new();
+    private List<GroceryItemDto> outOfStockItems = new();
+    private List<PriceRangeStat> priceRangeStats = new();
+    private bool isExporting;
+    private string? exportError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        CalculateStats();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("sortableTable.init", "categoryTable");
+            await JSRuntime.InvokeVoidAsync("sortableTable.init", "profitableTable");
+            await JSRuntime.InvokeVoidAsync("sortableTable.init", "stockTable");
+            await JSRuntime.InvokeVoidAsync("sortableTable.init", "priceRangeTable");
+        }
+    }
+
+    private async Task LoadData()
+    {
+        groceries = await GroceryService.GetAllGroceriesAsync();
+    }
+
+    private void CalculateStats()
+    {
+        if (groceries == null) return;
+
+        var groceryList = groceries.ToList();
+
+        // Basic stats
+        totalProfitPotential = groceryList.Sum(g => (g.Price - g.CostToProduce) * g.Stock);
+        averageProfitPerItem = groceryList.Average(g => g.Price - g.CostToProduce);
+        totalItemsInStock = groceryList.Sum(g => g.Stock);
+        totalCategories = groceryList.Select(g => g.Category).Distinct().Count();
+
+        // Category stats
+        categoryStats = groceryList
+            .GroupBy(g => g.Category)
+            .Select(g => new CategoryStat
+            {
+                Category = g.Key,
+                ItemCount = g.Count(),
+                TotalStock = g.Sum(i => i.Stock),
+                AverageProfit = g.Average(i => i.Price - i.CostToProduce),
+                TotalPotentialProfit = g.Sum(i => (i.Price - i.CostToProduce) * i.Stock)
+            })
+            .OrderByDescending(c => c.TotalPotentialProfit)
+            .ToList();
+
+        // Top profitable items
+        topProfitableItems = groceryList
+            .OrderByDescending(g => g.Price - g.CostToProduce)
+            .ToList();
+
+        // Stock analysis
+        highStockItems = groceryList.Where(g => g.Stock > 5).ToList();
+        lowStockItems = groceryList.Where(g => g.Stock >= 1 && g.Stock <= 5).ToList();
+        outOfStockItems = groceryList.Where(g => g.Stock == 0).ToList();
+
+        // Price range analysis
+        priceRangeStats = new List<PriceRangeStat>
+        {
+            new PriceRangeStat("$0-$1", groceryList.Where(g => g.Price < 1m)),
+            new PriceRangeStat("$1-$3", groceryList.Where(g => g.Price >= 1m && g.Price < 3m)),
+            new PriceRangeStat("$3-$5", groceryList.Where(g => g.Price >= 3m && g.Price < 5m)),
+            new PriceRangeStat("$5-$10", groceryList.Where(g => g.Price >= 5m && g.Price < 10m)),
+            new PriceRangeStat("$10+", groceryList.Where(g => g.Price >= 10m))
+        }.Where(r => r.ItemCount > 0).ToList();
+    }
+
+    private async Task ExportToExcel()
+    {
+        if (groceries == null)
+        {
+            return;
+        }
+
+        isExporting = true;
+        exportError = null;
+
+        try
+        {
+            // The workbook is built in the browser by XlsxExportService, then handed to the
+            // browser as a download through a tiny JS interop helper.
+            var report = await ExcelExportService.GenerateReportExcelAsync(groceries);
+            var fileName = $"GroceryReport_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+
+            await JSRuntime.InvokeVoidAsync(
+                "groceryFileDownload.saveBase64",
+                fileName,
+                Convert.ToBase64String(report),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        }
+        catch (Exception ex)
+        {
+            exportError = "The Excel report could not be generated. Please try again.";
+            Console.WriteLine($"Error exporting to Excel: {ex.Message}");
+        }
+        finally
+        {
+            isExporting = false;
+        }
+    }
+
+    private string GetCategoryClass(Category category)
+    {
+        return category switch
+        {
+            Category.Meat => "badge category-meat",
+            Category.Cheese => "badge category-cheese",
+            Category.Bread => "badge category-bread",
+            Category.Fruit => "badge category-fruit",
+            Category.Vegetable => "badge category-vegetable",
+            _ => "badge bg-secondary"
+        };
+    }
+
+    public class CategoryStat
+    {
+        public Category Category { get; set; }
+        public int ItemCount { get; set; }
+        public int TotalStock { get; set; }
+        public decimal AverageProfit { get; set; }
+        public decimal TotalPotentialProfit { get; set; }
+    }
+
+    public class PriceRangeStat
+    {
+        public string Range { get; set; } = string.Empty;
+        public int ItemCount { get; set; }
+        public decimal AverageCost { get; set; }
+        public decimal AverageProfit { get; set; }
+        public decimal ProfitMarginPercent { get; set; }
+
+        public PriceRangeStat(string range, IEnumerable<GroceryItemDto> items)
+        {
+            Range = range;
+            var itemList = items.ToList();
+            ItemCount = itemList.Count;
+            if (ItemCount > 0)
+            {
+                AverageCost = itemList.Average(i => i.CostToProduce);
+                AverageProfit = itemList.Average(i => i.Price - i.CostToProduce);
+                ProfitMarginPercent = itemList.Average(i => (i.Price - i.CostToProduce) / i.Price * 100);
+            }
+        }
+    }
+}

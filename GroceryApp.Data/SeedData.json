@@ -1,0 +1,352 @@
+[
+  {
+    "Name": "Apple",
+    "Category": "Fruit",
+    "Price": 0.99,
+    "CostToProduce": 0.45,
+    "Stock": 10
+  },
+  {
+    "Name": "Banana",
+    "Category": "Fruit", 
+    "Price": 0.59,
+    "CostToProduce": 0.25,
+    "Stock": 10
+  },
+  {
+    "Name": "Orange",
+    "Category": "Fruit",
+    "Price": 0.89,
+    "CostToProduce": 0.40,
+    "Stock": 10
+  },
+  {
+    "Name": "Strawberry",
+    "Category": "Fruit",
+    "Price": 2.99,
+    "CostToProduce": 1.50,
+    "Stock": 10
+  },
+  {
+    "Name": "Grapes",
+    "Category": "Fruit",
+    "Price": 3.49,
+    "CostToProduce": 1.75,
+    "Stock": 10
+  },
+  {
+    "Name": "Pineapple",
+    "Category": "Fruit",
+    "Price": 2.99,
+    "CostToProduce": 1.20,
+    "Stock": 10
+  },
+  {
+    "Name": "Mango",
+    "Category": "Fruit",
+    "Price": 1.99,
+    "CostToProduce": 0.95,
+    "Stock": 10
+  },
+  {
+    "Name": "Kiwi",
+    "Category": "Fruit",
+    "Price": 0.79,
+    "CostToProduce": 0.35,
+    "Stock": 10
+  },
+  {
+    "Name": "Blueberry",
+    "Category": "Fruit",
+    "Price": 4.99,
+    "CostToProduce": 2.50,
+    "Stock": 10
+  },
+  {
+    "Name": "Peach",
+    "Category": "Fruit",
+    "Price": 1.49,
+    "CostToProduce": 0.70,
+    "Stock": 10
+  },
+  {
+    "Name": "Carrot",
+    "Category": "Vegetable",
+    "Price": 0.89,
+    "CostToProduce": 0.30,
+    "Stock": 10
+  },
+  {
+    "Name": "Broccoli",
+    "Category": "Vegetable",
+    "Price": 1.99,
+    "CostToProduce": 0.80,
+    "Stock": 10
+  },
+  {
+    "Name": "Spinach",
+    "Category": "Vegetable",
+    "Price": 2.49,
+    "CostToProduce": 1.00,
+    "Stock": 10
+  },
+  {
+    "Name": "Tomato",
+    "Category": "Vegetable",
+    "Price": 1.29,
+    "CostToProduce": 0.60,
+    "Stock": 10
+  },
+  {
+    "Name": "Cucumber",
+    "Category": "Vegetable",
+    "Price": 0.99,
+    "CostToProduce": 0.40,
+    "Stock": 10
+  },
+  {
+    "Name": "Bell Pepper",
+    "Category": "Vegetable",
+    "Price": 1.79,
+    "CostToProduce": 0.85,
+    "Stock": 10
+  },
+  {
+    "Name": "Onion",
+    "Category": "Vegetable",
+    "Price": 0.79,
+    "CostToProduce": 0.25,
+    "Stock": 10
+  },
+  {
+    "Name": "Garlic",
+    "Category": "Vegetable",
+    "Price": 0.99,
+    "CostToProduce": 0.40,
+    "Stock": 10
+  },
+  {
+    "Name": "Potato",
+    "Category": "Vegetable",
+    "Price": 0.69,
+    "CostToProduce": 0.20,
+    "Stock": 10
+  },
+  {
+    "Name": "Lettuce",
+    "Category": "Vegetable",
+    "Price": 1.49,
+    "CostToProduce": 0.60,
+    "Stock": 10
+  },
+  {
+    "Name": "Chicken Breast",
+    "Category": "Meat",
+    "Price": 5.99,
+    "CostToProduce": 3.50,
+    "Stock": 10
+  },
+  {
+    "Name": "Ground Beef",
+    "Category": "Meat",
+    "Price": 4.99,
+    "CostToProduce": 2.75,
+    "Stock": 10
+  },
+  {
+    "Name": "Salmon Fillet",
+    "Category": "Meat",
+    "Price": 8.99,
+    "CostToProduce": 5.50,
+    "Stock": 10
+  },
+  {
+    "Name": "Pork Chops",
+    "Category": "Meat",
+    "Price": 6.49,
+    "CostToProduce": 3.25,
+    "Stock": 10
+  },
+  {
+    "Name": "Turkey Breast",
+    "Category": "Meat",
+    "Price": 7.99,
+    "CostToProduce": 4.50,
+    "Stock": 10
+  },
+  {
+    "Name": "Beef Steak",
+    "Category": "Meat",
+    "Price": 12.99,
+    "CostToProduce": 8.00,
+    "Stock": 10
+  },
+  {
+    "Name": "Ground Turkey",
+    "Category": "Meat",
+    "Price": 5.49,
+    "CostToProduce": 3.00,
+    "Stock": 10
+  },
+  {
+    "Name": "Bacon",
+    "Category": "Meat",
+    "Price": 4.99,
+    "CostToProduce": 2.50,
+    "Stock": 10
+  },
+  {
+    "Name": "Ham",
+    "Category": "Meat",
+    "Price": 6.99,
+    "CostToProduce": 3.75,
+    "Stock": 10
+  },
+  {
+    "Name": "Lamb Chops",
+    "Category": "Meat",
+    "Price": 15.99,
+    "CostToProduce": 10.00,
+    "Stock": 10
+  },
+  {
+    "Name": "Cheddar Cheese",
+    "Category": "Cheese",
+    "Price": 3.99,
+    "CostToProduce": 2.00,
+    "Stock": 10
+  },
+  {
+    "Name": "Mozzarella Cheese",
+    "Category": "Cheese",
+    "Price": 3.49,
+    "CostToProduce": 1.75,
+    "Stock": 10
+  },
+  {
+    "Name": "Swiss Cheese",
+    "Category": "Cheese",
+    "Price": 4.99,
+    "CostToProduce": 2.50,
+    "Stock": 10
+  },
+  {
+    "Name": "Brie Cheese",
+    "Category": "Cheese",
+    "Price": 5.99,
+    "CostToProduce": 3.50,
+    "Stock": 10
+  },
+  {
+    "Name": "Gouda Cheese",
+    "Category": "Cheese",
+    "Price": 4.49,
+    "CostToProduce": 2.25,
+    "Stock": 10
+  },
+  {
+    "Name": "Parmesan Cheese",
+    "Category": "Cheese",
+    "Price": 6.99,
+    "CostToProduce": 4.00,
+    "Stock": 10
+  },
+  {
+    "Name": "Blue Cheese",
+    "Category": "Cheese",
+    "Price": 5.49,
+    "CostToProduce": 3.25,
+    "Stock": 10
+  },
+  {
+    "Name": "Feta Cheese",
+    "Category": "Cheese",
+    "Price": 3.99,
+    "CostToProduce": 2.00,
+    "Stock": 10
+  },
+  {
+    "Name": "Cream Cheese",
+    "Category": "Cheese",
+    "Price": 2.99,
+    "CostToProduce": 1.50,
+    "Stock": 10
+  },
+  {
+    "Name": "Cottage Cheese",
+    "Category": "Cheese",
+    "Price": 2.49,
+    "CostToProduce": 1.25,
+    "Stock": 10
+  },
+  {
+    "Name": "White Bread",
+    "Category": "Bread",
+    "Price": 2.49,
+    "CostToProduce": 0.75,
+    "Stock": 10
+  },
+  {
+    "Name": "Whole Wheat Bread",
+    "Category": "Bread",
+    "Price": 2.99,
+    "CostToProduce": 1.00,
+    "Stock": 10
+  },
+  {
+    "Name": "Sourdough Bread",
+    "Category": "Bread",
+    "Price": 3.99,
+    "CostToProduce": 1.50,
+    "Stock": 10
+  },
+  {
+    "Name": "Rye Bread",
+    "Category": "Bread",
+    "Price": 3.49,
+    "CostToProduce": 1.25,
+    "Stock": 10
+  },
+  {
+    "Name": "Baguette",
+    "Category": "Bread",
+    "Price": 2.99,
+    "CostToProduce": 1.00,
+    "Stock": 10
+  },
+  {
+    "Name": "Ciabatta",
+    "Category": "Bread",
+    "Price": 3.49,
+    "CostToProduce": 1.25,
+    "Stock": 10
+  },
+  {
+    "Name": "Pita Bread",
+    "Category": "Bread",
+    "Price": 2.99,
+    "CostToProduce": 1.00,
+    "Stock": 10
+  },
+  {
+    "Name": "Bagels",
+    "Category": "Bread",
+    "Price": 3.99,
+    "CostToProduce": 1.50,
+    "Stock": 10
+  },
+  {
+    "Name": "Croissant",
+    "Category": "Bread",
+    "Price": 1.99,
+    "CostToProduce": 0.75,
+    "Stock": 10
+  },
+  {
+    "Name": "Dinner Rolls",
+    "Category": "Bread",
+    "Price": 2.99,
+    "CostToProduce": 1.00,
+    "Stock": 10
+  }
+]

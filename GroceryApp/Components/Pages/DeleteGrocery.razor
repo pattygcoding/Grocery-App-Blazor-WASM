@@ -1,0 +1,114 @@
+@page "/groceries/delete/{id:int}"
+@using GroceryApp.Services
+@using GroceryApp.Models.DTOs
+@inject IGroceryService GroceryService
+@inject NavigationManager Navigation
+
+<PageTitle>Delete Grocery Item</PageTitle>
+
+@if (grocery == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (notFound)
+{
+    <div class="alert alert-danger">
+        <h4>Not Found</h4>
+        <p>The grocery item you are trying to delete could not be found.</p>
+        <a href="/groceries" class="btn btn-primary">Back to Groceries</a>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        <h4>Confirm Deletion</h4>
+        <p>Are you sure you want to delete this grocery item?</p>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">@grocery.Name</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Category</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-secondary">@grocery.Category</span>
+                        </dd>
+
+                        <dt class="col-sm-4">Price</dt>
+                        <dd class="col-sm-8">$@grocery.Price.ToString("F2")</dd>
+
+                        <dt class="col-sm-4">Stock</dt>
+                        <dd class="col-sm-8">@grocery.Stock</dd>
+
+                        <dt class="col-sm-4">Created</dt>
+                        <dd class="col-sm-8">@grocery.CreatedUtc.ToString("MMM d, yyyy 'at' h:mm tt")</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <EditForm Model="@this" OnSubmit="@HandleDelete">
+            <button type="submit" class="btn btn-danger me-2" disabled="@isDeleting">
+                @if (isDeleting)
+                {
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                }
+                Delete Item
+            </button>
+            <a href="/groceries/@Id" class="btn btn-secondary">Cancel</a>
+        </EditForm>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    
+    private GroceryItemDto? grocery;
+    private bool notFound = false;
+    private bool isDeleting = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadGrocery();
+    }
+
+    private async Task LoadGrocery()
+    {
+        grocery = await GroceryService.GetGroceryByIdAsync(Id);
+        notFound = grocery == null;
+    }
+
+    private async Task HandleDelete()
+    {
+        if (grocery == null) return;
+
+        isDeleting = true;
+        try
+        {
+            var result = await GroceryService.DeleteGroceryAsync(Id);
+            if (result)
+            {
+                Navigation.NavigateTo("/groceries");
+            }
+            else
+            {
+                notFound = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle error - in a real app you'd want better error handling
+            Console.WriteLine($"Error deleting grocery item: {ex.Message}");
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+}

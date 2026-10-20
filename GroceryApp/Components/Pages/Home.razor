@@ -1,0 +1,228 @@
+@page "/"
+@inject IGroceryService GroceryService
+
+<PageTitle>Home - Grocery Shopping App</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="jumbotron bg-primary text-white p-5 rounded mb-4">
+                <h1 class="display-4">🛒 Grocery Shopping App</h1>
+                <p class="lead">A front-end only Blazor WebAssembly application for managing grocery items - it runs entirely in the browser as static files hosted on GitHub Pages.</p>
+                <hr class="my-4">
+                <p>No server, no database, no API. Every add, edit, delete and report happens client side, and the catalogue is stored in this browser's localStorage.</p>
+                <a class="btn btn-success btn-lg me-2" href="/groceries" role="button">
+                    <i class="bi bi-basket3-fill"></i> View Groceries
+                </a>
+                <a class="btn btn-outline-light btn-lg" href="/reports" role="button">
+                    <i class="bi bi-bar-chart-fill"></i> View Reports
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>✨ Key Features</h2>
+            <div class="row">
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-plus-circle text-success"></i> Add Items
+                            </h5>
+                            <p class="card-text">Create new grocery items with name, category, price, and stock information.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-grid-3x3-gap text-primary"></i> Organized Categories
+                            </h5>
+                            <p class="card-text">View all grocery items organized by category: Fruits, Vegetables, Meats, Cheeses, and Breads.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-pencil-square text-warning"></i> Full CRUD Operations
+                            </h5>
+                            <p class="card-text">Create, read, update, and delete grocery items with intuitive forms and confirmations.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-database text-info"></i> Browser Storage
+                            </h5>
+                            <p class="card-text">All data is persisted to localStorage in your own browser through JS interop - nothing is ever uploaded.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-check2-circle text-success"></i> Form Validation
+                            </h5>
+                            <p class="card-text">Comprehensive form validation with data annotations ensures data integrity and user feedback.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-file-earmark-excel text-secondary"></i> In-Browser Excel Reports
+                            </h5>
+                            <p class="card-text">The 5 sheet analytics workbook is generated in C# in the browser - no ClosedXML, no server round trip.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3>🏗️ Architecture & Tech Stack</h3>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><strong>.NET 8</strong> - Blazor WebAssembly, C# running in the browser</li>
+                        <li><strong>GitHub Pages</strong> - the app is deployed as static files only</li>
+                        <li><strong>localStorage</strong> - catalogue persisted through JS interop</li>
+                        <li><strong>Open XML writer</strong> - Excel reports built client side, no dependencies</li>
+                        <li><strong>Bootstrap 5</strong> - Responsive, modern styling</li>
+                        <li><strong>Repository + Service Pattern</strong> - Clean architecture separation</li>
+                        <li><strong>Dependency Injection</strong> - SOLID principles implementation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3>📊 Seeded Data</h3>
+                </div>
+                <div class="card-body">
+                    <p>The application comes pre-loaded with <strong>50 grocery items</strong> across 5 categories:</p>
+                    <ul>
+                        <li><strong>🍎 Fruits</strong> - Apple, Banana, Orange, Strawberry, Grapes, Pineapple, Mango, Kiwi, Blueberry, Peach</li>
+                        <li><strong>🥕 Vegetables</strong> - Carrot, Broccoli, Spinach, Tomato, Cucumber, Bell Pepper, Onion, Garlic, Potato, Lettuce</li>
+                        <li><strong>🥩 Meats</strong> - Chicken Breast, Ground Beef, Salmon Fillet, Pork Chops, Turkey Breast, Beef Steak, Ground Turkey, Bacon, Ham, Lamb Chops</li>
+                        <li><strong>🧀 Cheeses</strong> - Cheddar, Mozzarella, Swiss, Brie, Gouda, Parmesan, Blue, Feta, Cream, Cottage</li>
+                        <li><strong>🍞 Breads</strong> - White Bread, Whole Wheat Bread, Sourdough, Rye Bread, Baguette, Ciabatta, Pita Bread, Bagels, Croissant, Dinner Rolls</li>
+                    </ul>
+                    <p class="text-muted mb-0">Seed data is embedded in the assembly and written to your browser on first load.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3>🚀 Quick Actions</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <a href="/groceries" class="btn btn-primary btn-lg w-100">
+                                <i class="bi bi-list"></i><br>
+                                View All Items
+                            </a>
+                            <small class="text-muted d-block mt-2">Browse all grocery items organized by category</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="/groceries/create" class="btn btn-success btn-lg w-100">
+                                <i class="bi bi-plus-square"></i><br>
+                                Add New Item
+                            </a>
+                            <small class="text-muted d-block mt-2">Create a new grocery item with details</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="/reports" class="btn btn-info btn-lg w-100">
+                                <i class="bi bi-bar-chart"></i><br>
+                                Reports
+                            </a>
+                            <small class="text-muted d-block mt-2">Analytics with client side Excel export</small>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <button class="btn btn-outline-secondary" @onclick="ResetDemoData" disabled="@isResetting">
+                            @if (isResetting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                            }
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset Demo Data
+                        </button>
+                        <small class="text-muted">
+                            Restores the original 50 items in this browser (edits are stored in localStorage).
+                        </small>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(statusMessage))
+                    {
+                        <div class="alert alert-info mt-3 mb-0">@statusMessage</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h4 class="alert-heading">🎯 Perfect for Learning</h4>
+                <p>This application demonstrates modern .NET development practices including:</p>
+                <ul class="mb-0">
+                    <li>Clean architecture with separation of concerns</li>
+                    <li>Repository and service layer patterns</li>
+                    <li>Blazor WebAssembly running C# in the browser</li>
+                    <li>JS interop for browser storage (localStorage)</li>
+                    <li>Generating Open XML spreadsheets without server side libraries</li>
+                    <li>Static hosting and automated deployment to GitHub Pages</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool isResetting;
+    private string? statusMessage;
+
+    private async Task ResetDemoData()
+    {
+        isResetting = true;
+        statusMessage = null;
+
+        try
+        {
+            await GroceryService.ResetDemoDataAsync();
+            statusMessage = "Demo data restored - the original 50 items are back.";
+        }
+        catch (Exception ex)
+        {
+            statusMessage = "The demo data could not be restored. Please reload the application.";
+            Console.WriteLine($"Error resetting demo data: {ex.Message}");
+        }
+        finally
+        {
+            isResetting = false;
+        }
+    }
+}

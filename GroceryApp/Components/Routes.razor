@@ -1,0 +1,18 @@
+﻿<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Not found - Grocery Shopping App</PageTitle>
+        <LayoutView Layout="typeof(Layout.MainLayout)">
+            <div class="container-fluid">
+                <div class="alert alert-warning">
+                    <h4>Page not found</h4>
+                    <p>The page you requested does not exist in this Blazor WebAssembly demo.</p>
+                    <a href="/" class="btn btn-primary">Back to Home</a>
+                </div>
+            </div>
+        </LayoutView>
+    </NotFound>
+</Router>

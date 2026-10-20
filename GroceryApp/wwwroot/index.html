@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Grocery Shopping App - Blazor WebAssembly</title>
+    <meta name="description" content="A front-end only Blazor WebAssembly grocery manager: client side CRUD, browser storage and in-browser Excel reports. Hosted on GitHub Pages." />
+    <base href="/" />
+    <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="GroceryApp.styles.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <script>
+        // GitHub Pages serves 404.html for any path it does not have a file for, which is how
+        // deep links and refreshes on client side routes (/groceries, /reports, ...) work.
+        // 404.html forwards the requested route here in the query string; this restores the
+        // real URL before the Blazor router starts.
+        (function () {
+            var location = window.location;
+            if (location.search[1] === '/') {
+                var decoded = location.search.slice(1).split('&').map(function (part) {
+                    return part.replace(/~and~/g, '&');
+                }).join('?');
+                window.history.replaceState(null, document.title, location.pathname.slice(0, -1) + decoded + location.hash);
+            }
+        })();
+    </script>
+    <style>
+        #app .loading-shell {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            padding: 4rem 2rem;
+            text-align: center;
+            color: #052767;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="loading-shell">
+            <h1>🛒 Grocery Shopping App</h1>
+            <p>Loading Blazor WebAssembly…</p>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="sortable-table.js"></script>
+    <script src="file-download.js"></script>
+</body>
+
+</html>

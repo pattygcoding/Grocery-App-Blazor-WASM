@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>GroceryApp</RootNamespace>
+    <AssemblyName>GroceryApp</AssemblyName>
+    <!--
+      The published app is served from the root of the custom domain
+      (https://blazor.pattygcoding.com), so assets are resolved from "/".
+      Hosting under https://<user>.github.io/<repo>/ instead? Change this property and the
+      <base href> in wwwroot/index.html to "/<repo>/".
+    -->
+    <StaticWebAssetBasePath>/</StaticWebAssetBasePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.21" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.21" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GroceryApp.Models\GroceryApp.Models.csproj" />
+    <ProjectReference Include="..\GroceryApp.Data\GroceryApp.Data.csproj" />
+    <ProjectReference Include="..\GroceryApp.Services\GroceryApp.Services.csproj" />
+  </ItemGroup>
+
+</Project>

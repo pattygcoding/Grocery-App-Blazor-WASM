@@ -1,0 +1,113 @@
+@page "/groceries"
+@using GroceryApp.Services
+@using GroceryApp.Models.DTOs
+@using GroceryApp.Models
+@inject IGroceryService GroceryService
+@inject NavigationManager Navigation
+
+<PageTitle>Groceries</PageTitle>
+
+<h1>Grocery Items</h1>
+
+<div class="mb-3">
+    <a href="/groceries/create" class="btn btn-primary">
+        <i class="bi bi-plus"></i> Add New Item
+    </a>
+</div>
+
+<style>
+    .category-fruit { background-color: #e3f2fd !important; border-left: 5px solid #2196f3; }
+    .category-vegetable { background-color: #e8f5e8 !important; border-left: 5px solid #2e7d32; }
+    .category-meat { background-color: #ffebee !important; border-left: 5px solid #d32f2f; }
+    .category-bread { background-color: #f3e5f5 !important; border-left: 5px solid #7b1fa2; }
+    .category-cheese { background-color: #fffde7 !important; border-left: 5px solid #f57c00; }
+    
+    .stock-controls .btn {
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        font-size: 14px;
+    }
+</style>
+
+@if (groceries == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (!groceries.Any())
+{
+    <p><em>No grocery items found.</em></p>
+}
+else
+{
+    <div class="row">
+        @foreach (var category in Enum.GetValues<Category>())
+        {
+            var itemsInCategory = groceries.Where(g => g.Category == category).ToList();
+            if (itemsInCategory.Any())
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card category-@category.ToString().ToLower()">
+                        <div class="card-header">
+                            <h5 class="mb-0">@category</h5>
+                        </div>
+                        <div class="card-body">
+                            @foreach (var item in itemsInCategory)
+                            {
+                                <div class="mb-3 p-2 border rounded">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <strong>@item.Name</strong>
+                                                <small class="text-muted">[ID: @item.Id]</small>
+                                            </div>
+                                            <small class="text-muted">$@item.Price.ToString("F2") | Cost: $@item.CostToProduce.ToString("F2")</small><br>
+                                            <small class="text-success">Profit: $@((item.Price - item.CostToProduce).ToString("F2"))</small>
+                                            
+                                            <div class="d-flex align-items-center justify-content-between mt-2">
+                                                <div class="d-flex align-items-center">
+                                                    <span class="me-2">Stock:</span>
+                                                    <div class="stock-controls d-flex align-items-center">
+                                                        <button class="btn btn-sm btn-outline-danger me-1" @onclick="() => AdjustStock(item.Id, -1)" disabled="@(item.Stock <= 0)">-</button>
+                                                        <span class="mx-2 fw-bold">@item.Stock</span>
+                                                        <button class="btn btn-sm btn-outline-success ms-1" @onclick="() => AdjustStock(item.Id, 1)">+</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-end mt-2">
+                                        <a href="/groceries/@item.Id" class="btn btn-sm btn-outline-primary me-1">View</a>
+                                        <a href="/groceries/edit/@item.Id" class="btn btn-sm btn-outline-secondary me-1">Edit</a>
+                                        <a href="/groceries/delete/@item.Id" class="btn btn-sm btn-outline-danger">Delete</a>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+}
+
+@code {
+    private IEnumerable<GroceryItemDto>? groceries;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadGroceries();
+    }
+
+    private async Task LoadGroceries()
+    {
+        groceries = await GroceryService.GetAllGroceriesAsync();
+    }
+
+    private async Task AdjustStock(int id, int adjustment)
+    {
+        await GroceryService.AdjustStockAsync(id, adjustment);
+        await LoadGroceries(); // Reload to get updated stock
+        StateHasChanged();
+    }
+}

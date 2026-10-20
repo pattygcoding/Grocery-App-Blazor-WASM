@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Grocery Shopping App</title>
+    <script>
+        // Static hosting has no rewrite rules, so GitHub Pages answers any unknown path with this
+        // file (HTTP 404). That is expected for client side routes such as /groceries/edit/3.
+        // The route is appended to the query string, then the browser is sent back to index.html
+        // where the URL is restored and handed to the Blazor router.
+        // segmentCount is 0 because the app is served from the root of blazor.pattygcoding.com.
+        (function () {
+            var segmentCount = 0;
+            var location = window.location;
+            var basePath = location.pathname.split('/').slice(0, 1 + segmentCount).join('/') + '/?/';
+            var route = location.pathname.slice(1).split('/').slice(segmentCount).join('/').replace(/&/g, '~and~');
+            var query = location.search ? '&' + location.search.slice(1).replace(/&/g, '~and~') : '';
+
+            location.replace(
+                location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '') +
+                basePath + route + query + location.hash);
+        })();
+    </script>
+</head>
+
+<body>
+    <p>Redirecting…</p>
+</body>
+
+</html>
