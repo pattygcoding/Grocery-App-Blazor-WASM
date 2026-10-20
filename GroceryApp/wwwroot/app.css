@@ -1357,6 +1357,40 @@ select.invalid,
     padding: var(--space-5) var(--space-5) var(--space-4);
 }
 
+/* Header row: the link back to pattygcoding.com sits first (leftmost control in the app),
+   followed by the brand. Mirrors the sidebar header used by Neo-Connect-Four. */
+.nav-head__row {
+    align-items: center;
+    display: flex;
+    gap: var(--space-3);
+}
+
+/* Square icon-only control. */
+.icon-button {
+    align-items: center;
+    background-color: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 34px;
+    justify-content: center;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    width: 34px;
+}
+
+.icon-button:hover {
+    background-color: var(--surface);
+    border-color: var(--brand-border);
+    color: var(--brand);
+    text-decoration: none;
+}
+
+.icon-button:focus-visible {
+    box-shadow: var(--focus-ring);
+}
+
 .nav-brand {
     align-items: center;
     display: flex;
