@@ -8,7 +8,15 @@
 
 <PageTitle>Reports</PageTitle>
 
-<h1>Grocery Reports</h1>
+<header class="page-header">
+    <div class="page-header__text">
+        <h1>Reports</h1>
+        <p class="page-subtitle">
+            Profit, category performance, stock coverage and price bands, calculated from the catalogue
+            held in this browser.
+        </p>
+    </div>
+</header>
 
 @if (groceries == null)
 {
@@ -19,37 +27,26 @@ else
     <div class="row">
         <!-- Profit Summary -->
         <div class="col-12 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Profit Summary</h5>
+            <div class="stat-grid">
+                <div class="stat-tile stat-tile--brand">
+                    <span class="stat-tile__label">Profit potential</span>
+                    <span class="stat-tile__value">@totalProfitPotential.ToString("C2")</span>
+                    <span class="stat-tile__meta">Margin across all stock on hand</span>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="text-center p-3 bg-success text-white rounded">
-                                <h4>$@totalProfitPotential.ToString("F2")</h4>
-                                <small>Total Profit Potential</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center p-3 bg-primary text-white rounded">
-                                <h4>$@averageProfitPerItem.ToString("F2")</h4>
-                                <small>Average Profit per Item</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center p-3 bg-warning text-dark rounded">
-                                <h4>@totalItemsInStock</h4>
-                                <small>Total Items in Stock</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center p-3 bg-info text-white rounded">
-                                <h4>@totalCategories</h4>
-                                <small>Product Categories</small>
-                            </div>
-                        </div>
-                    </div>
+                <div class="stat-tile">
+                    <span class="stat-tile__label">Average margin</span>
+                    <span class="stat-tile__value">@averageProfitPerItem.ToString("C2")</span>
+                    <span class="stat-tile__meta">Mean of price minus cost, per item</span>
+                </div>
+                <div class="stat-tile">
+                    <span class="stat-tile__label">Units in stock</span>
+                    <span class="stat-tile__value">@totalItemsInStock.ToString("N0")</span>
+                    <span class="stat-tile__meta">Total quantity on hand</span>
+                </div>
+                <div class="stat-tile">
+                    <span class="stat-tile__label">Categories</span>
+                    <span class="stat-tile__value">@totalCategories.ToString("N0")</span>
+                    <span class="stat-tile__meta">Distinct categories in use</span>
                 </div>
             </div>
         </div>
@@ -76,7 +73,7 @@ else
                                 @foreach (var category in categoryStats)
                                 {
                                     <tr>
-                                        <td><span class="badge @GetCategoryClass(category.Category)">@category.Category</span></td>
+                                        <td><span class="chip @GetCategoryClass(category.Category)">@category.Category</span></td>
                                         <td>@category.ItemCount</td>
                                         <td>@category.TotalStock</td>
                                         <td>$@category.AverageProfit.ToString("F2")</td>
@@ -112,7 +109,7 @@ else
                                 {
                                     <tr>
                                         <td>@item.Name</td>
-                                        <td><span class="badge @GetCategoryClass(item.Category)">@item.Category</span></td>
+                                        <td><span class="chip @GetCategoryClass(item.Category)">@item.Category</span></td>
                                         <td>$@((item.Price - item.CostToProduce).ToString("F2"))</td>
                                         <td>@(((item.Price - item.CostToProduce) / item.Price * 100).ToString("F1"))%</td>
                                     </tr>
@@ -205,28 +202,35 @@ else
 
         <!-- Export Options -->
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Export Options</h5>
+            <section class="panel">
+                <div class="panel__header">
+                    <h2 class="panel__title">
+                        <Icon Name="file-earmark-spreadsheet" /> Export
+                    </h2>
                 </div>
-                <div class="card-body">
-                    <button class="btn btn-success me-2" @onclick="ExportToExcel" disabled="@isExporting">
-                        @if (isExporting)
-                        {
-                            <span class="spinner-border spinner-border-sm me-1"></span>
-                        }
-                        <i class="bi bi-file-earmark-excel"></i> Export to Excel
-                    </button>
-                    <small class="text-muted">Download a comprehensive Excel report with all data and metrics</small>
-                    <div class="text-muted mt-2">
-                        <small>The workbook is generated in your browser - there is no server involved.</small>
+                <div class="panel__body">
+                    <p class="feature__text">
+                        Download a five sheet workbook: key metrics, profit by category, top profitable items,
+                        stock analysis and price bands. The file is written as Open XML in C# in the browser,
+                        so there is no server request involved.
+                    </p>
+
+                    <div class="row-actions mt-3">
+                        <button class="btn btn-primary" @onclick="ExportToExcel" disabled="@isExporting">
+                            @if (isExporting)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            }
+                            <Icon Name="file-earmark-spreadsheet" /> Export to Excel
+                        </button>
                     </div>
+
                     @if (!string.IsNullOrEmpty(exportError))
                     {
-                        <div class="alert alert-danger mt-3 mb-0">@exportError</div>
+                        <div class="alert alert--danger mt-3 mb-0">@exportError</div>
                     }
                 </div>
-            </div>
+            </section>
         </div>
     </div>
 }
@@ -355,12 +359,12 @@ else
     {
         return category switch
         {
-            Category.Meat => "badge category-meat",
-            Category.Cheese => "badge category-cheese",
-            Category.Bread => "badge category-bread",
-            Category.Fruit => "badge category-fruit",
-            Category.Vegetable => "badge category-vegetable",
-            _ => "badge bg-secondary"
+            Category.Meat => "chip--meat",
+            Category.Cheese => "chip--cheese",
+            Category.Bread => "chip--bread",
+            Category.Fruit => "chip--fruit",
+            Category.Vegetable => "chip--vegetable",
+            _ => "chip--neutral"
         };
     }
 

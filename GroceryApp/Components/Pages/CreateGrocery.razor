@@ -1,60 +1,84 @@
 @page "/groceries/create"
-@using GroceryApp.Services
-@using GroceryApp.Models.DTOs
-@using GroceryApp.Models
-@using System.ComponentModel.DataAnnotations
 @inject IGroceryService GroceryService
 @inject NavigationManager Navigation
 
-<PageTitle>Create Grocery Item</PageTitle>
+<PageTitle>Add grocery item</PageTitle>
 
-<h1>Create New Grocery Item</h1>
+<a class="back-link" href="/groceries">
+    <Icon Name="arrow-left" CssClass="icon-sm" /> All groceries
+</a>
 
-<div class="row">
-    <div class="col-md-6">
-        <EditForm Model="@createModel" OnValidSubmit="@HandleValidSubmit">
+<header class="page-header">
+    <div class="page-header__text">
+        <h1>Add a grocery item</h1>
+        <p class="page-subtitle">
+            New items are validated and written to this browser's storage. Nothing is sent to a server.
+        </p>
+    </div>
+</header>
+
+<div class="panel panel--narrow">
+    <div class="panel__body">
+        @* novalidate: the app's own DataAnnotations validation is authoritative, so the browser's
+           constraint validation must not swallow the submit event (for example when a price field
+           starts at 0 but carries min="0.01"). *@
+        <EditForm Model="@createModel" OnValidSubmit="@HandleValidSubmit" novalidate>
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" />
+            <ValidationSummary />
 
-            <div class="mb-3">
-                <label for="name" class="form-label">Name</label>
-                <InputText id="name" class="form-control" @bind-Value="createModel.Name" />
-                <ValidationMessage For="() => createModel.Name" />
+            @if (!string.IsNullOrEmpty(submitError))
+            {
+                <div class="alert alert--danger">
+                    <p class="alert__title">
+                        <Icon Name="exclamation-triangle" CssClass="icon-sm" /> The item could not be saved
+                    </p>
+                    <p class="mb-0">@submitError</p>
+                </div>
+            }
+
+            <div class="form-grid">
+                <div>
+                    <label class="form-label" for="name">Name</label>
+                    <InputText id="name" class="form-control" @bind-Value="createModel.Name" placeholder="Conference pear" />
+                    <ValidationMessage For="() => createModel.Name" />
+                </div>
+
+                <div>
+                    <label class="form-label" for="category">Category</label>
+                    <InputSelect id="category" class="form-control" @bind-Value="createModel.Category">
+                        <option value="">Select a category…</option>
+                        @foreach (var category in Enum.GetValues<Category>())
+                        {
+                            <option value="@category">@category</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="() => createModel.Category" />
+                </div>
+
+                <div>
+                    <label class="form-label" for="price">Unit price</label>
+                    <InputNumber id="price" class="form-control" @bind-Value="createModel.Price" step="0.01" min="0.01" />
+                    <ValidationMessage For="() => createModel.Price" />
+                </div>
+
+                <div>
+                    <label class="form-label" for="cost">Cost to produce</label>
+                    <InputNumber id="cost" class="form-control" @bind-Value="createModel.CostToProduce" step="0.01" min="0.01" />
+                    <ValidationMessage For="() => createModel.CostToProduce" />
+                </div>
+
+                <div>
+                    <label class="form-label" for="stock">Stock on hand</label>
+                    <InputNumber id="stock" class="form-control" @bind-Value="createModel.Stock" min="0" />
+                    <ValidationMessage For="() => createModel.Stock" />
+                </div>
             </div>
 
-            <div class="mb-3">
-                <label for="category" class="form-label">Category</label>
-                <InputSelect id="category" class="form-control" @bind-Value="createModel.Category">
-                    <option value="">Select a category...</option>
-                    @foreach (var category in Enum.GetValues<Category>())
-                    {
-                        <option value="@category">@category</option>
-                    }
-                </InputSelect>
-                <ValidationMessage For="() => createModel.Category" />
-            </div>
-
-            <div class="mb-3">
-                <label for="price" class="form-label">Price</label>
-                <InputNumber id="price" class="form-control" @bind-Value="createModel.Price" step="0.01" />
-                <ValidationMessage For="() => createModel.Price" />
-            </div>
-
-            <div class="mb-3">
-                <label for="costToProduce" class="form-label">Cost to Produce</label>
-                <InputNumber id="costToProduce" class="form-control" @bind-Value="createModel.CostToProduce" step="0.01" />
-                <ValidationMessage For="() => createModel.CostToProduce" />
-            </div>
-
-            <div class="mb-3">
-                <label for="stock" class="form-label">Stock</label>
-                <InputNumber id="stock" class="form-control" @bind-Value="createModel.Stock" />
-                <ValidationMessage For="() => createModel.Stock" />
-            </div>
-
-            <div class="mb-3">
-                <button type="submit" class="btn btn-primary">Create</button>
-                <a href="/groceries" class="btn btn-secondary ms-2">Cancel</a>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <Icon Name="plus-lg" /> Add item
+                </button>
+                <a class="btn btn-secondary" href="/groceries">Cancel</a>
             </div>
         </EditForm>
     </div>
@@ -62,9 +86,12 @@
 
 @code {
     private CreateGroceryItemDto createModel = new();
+    private string? submitError;
 
     private async Task HandleValidSubmit()
     {
+        submitError = null;
+
         try
         {
             await GroceryService.CreateGroceryAsync(createModel);
@@ -72,7 +99,7 @@
         }
         catch (Exception ex)
         {
-            // Handle error - in a real app you'd want better error handling
+            submitError = "The item could not be written to browser storage. Please try again.";
             Console.WriteLine($"Error creating grocery item: {ex.Message}");
         }
     }

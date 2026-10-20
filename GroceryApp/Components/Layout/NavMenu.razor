@@ -1,39 +1,47 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">GroceryApp</a>
-    </div>
+﻿<div class="nav-head">
+    <a class="nav-brand" href="">
+        <span class="nav-brand__mark">
+            <Icon Name="basket3-fill" Size="18" AriaLabel="Grocery App" />
+        </span>
+        <span class="nav-brand__text">
+            <span class="nav-brand__name">Grocery App</span>
+            <span class="nav-brand__meta">Blazor WebAssembly</span>
+        </span>
+    </a>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<input id="nav-toggle" class="nav-toggle" type="checkbox" aria-label="Show navigation" />
+<label class="nav-toggle-button" for="nav-toggle">
+    <span class="nav-toggle-bars" aria-hidden="true"></span>
+    <span class="visually-hidden">Toggle navigation</span>
+</label>
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
+@* Clicking any entry collapses the menu on small screens (the state lives in the
+   checkbox above), which keeps the navigation free of JavaScript. *@
+<nav class="nav-list" onclick="document.getElementById('nav-toggle').checked = false">
+    <span class="nav-section">Workspace</span>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="groceries">
-                <span class="bi bi-basket3-fill-nav-menu" aria-hidden="true"></span> Groceries
-            </NavLink>
-        </div>
+    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+        <Icon Name="house-door-fill" /> Home
+    </NavLink>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="reports">
-                <span class="bi bi-bar-chart-fill-nav-menu" aria-hidden="true"></span> Reports
-            </NavLink>
-        </div>
+    <NavLink class="nav-link" href="groceries">
+        <Icon Name="basket3-fill" /> Groceries
+    </NavLink>
 
-        <div class="nav-section-label px-3">Legacy reference</div>
+    <NavLink class="nav-link" href="reports">
+        <Icon Name="bar-chart-fill" /> Reports
+    </NavLink>
 
-        <div class="nav-item px-3">
-            <a class="nav-link" href="https://github.com/pattygcoding/Grocery-App-Blazor" target="_blank" rel="noopener">
-                <span class="bi bi-github-nav-menu" aria-hidden="true"></span> Blazor Server version
-            </a>
-        </div>
+    <span class="nav-section">Legacy reference</span>
 
-    </nav>
-</div>
+    <a class="nav-link" href="https://github.com/pattygcoding/Grocery-App-Blazor" target="_blank" rel="noopener">
+        <Icon Name="github" /> Blazor Server version
+        <Icon Name="box-arrow-up-right" CssClass="nav-link__hint icon-sm" />
+    </a>
 
+    <a class="nav-link" href="https://github.com/pattygcoding/Grocery-App-Blazor-WASM" target="_blank" rel="noopener">
+        <Icon Name="code-slash" /> Source of this app
+        <Icon Name="box-arrow-up-right" CssClass="nav-link__hint icon-sm" />
+    </a>
+</nav>

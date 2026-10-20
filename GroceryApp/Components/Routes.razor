@@ -4,13 +4,17 @@
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
     <NotFound>
-        <PageTitle>Not found - Grocery Shopping App</PageTitle>
+        <PageTitle>Page not found - Grocery App</PageTitle>
         <LayoutView Layout="typeof(Layout.MainLayout)">
-            <div class="container-fluid">
-                <div class="alert alert-warning">
-                    <h4>Page not found</h4>
-                    <p>The page you requested does not exist in this Blazor WebAssembly demo.</p>
-                    <a href="/" class="btn btn-primary">Back to Home</a>
+            <div class="panel">
+                <div class="empty-state">
+                    <Icon Name="exclamation-triangle" CssClass="empty-state__icon" Size="24" />
+                    <h2>Page not found</h2>
+                    <p>That route does not exist in this Blazor WebAssembly application.</p>
+                    <div class="empty-state__actions">
+                        <a class="btn btn-primary" href="/">Back to home</a>
+                        <a class="btn btn-secondary" href="/groceries">Browse groceries</a>
+                    </div>
                 </div>
             </div>
         </LayoutView>

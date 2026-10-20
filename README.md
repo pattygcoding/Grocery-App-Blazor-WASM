@@ -68,6 +68,27 @@ Data flow: `Pages` → `IGroceryService` → `IGroceryRepository` → `IGroceryS
 - On first use the repository seeds the catalogue from `SeedData.json`, which is embedded in
   `GroceryApp.Data.dll`.
 
+## UI and design system
+
+The interface is built on a token driven design system in `GroceryApp/wwwroot/app.css`
+(colour, type scale, spacing, radii, elevation), so no component hardcodes a colour:
+
+- **Light and dark themes** are derived from the same tokens through `prefers-color-scheme` -
+  there is no theme toggle to keep in sync.
+- **Semantic component classes** (`panel`, `stat-tile`, `item-row`, `chip`, `stepper`) rather than
+  utility soup, with the Bootstrap components still used by the markup restyled onto the tokens.
+- **Iconography** comes from an inlined SVG sprite (`wwwroot/icons.svg`, built from Bootstrap Icons,
+  MIT) rendered by the `Icon` component: no icon webfont, no CDN request, and every glyph inherits
+  `currentColor` so it follows both themes.
+- **Two effects are adapted from [Magic UI](https://magicui.design)**: the hero `dot-pattern`
+  (1px dots on a 16px grid in neutral-400/80, radially masked) and `blur-fade`
+  (0.4s duration, 0.04s delay, 6px offset, 6px blur) as the single page entrance transition.
+  Magic UI ships React/Tailwind components that a Blazor application cannot consume, so the
+  design values were reimplemented in plain CSS instead of pulling in a JavaScript dependency.
+- **Accessibility**: measured in the browser at build time - every text pair scores between
+  4.56:1 and 17.75:1 (WCAG AA) in both themes, focus-visible rings are defined globally, icon-only
+  controls carry `aria-label`s, and all animation is switched off under `prefers-reduced-motion`.
+
 ## Tech Stack
 
 - .NET 8 / C# 12
@@ -75,7 +96,7 @@ Data flow: `Pages` → `IGroceryService` → `IGroceryRepository` → `IGroceryS
 - `System.Text.Json` source generated serialization (trim safe)
 - JS interop for `localStorage` and file downloads
 - Hand written Open XML (.xlsx) generation - no ClosedXML, no server
-- Bootstrap 5 for styling
+- Bootstrap 5.1 for the grid and form basics, restyled by the design system above
 - xUnit + NSubstitute for testing
 - GitHub Actions + GitHub Pages for hosting
 

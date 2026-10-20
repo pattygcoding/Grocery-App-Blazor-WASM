@@ -1,98 +1,135 @@
 @page "/groceries"
-@using GroceryApp.Services
-@using GroceryApp.Models.DTOs
-@using GroceryApp.Models
 @inject IGroceryService GroceryService
-@inject NavigationManager Navigation
 
 <PageTitle>Groceries</PageTitle>
 
-<h1>Grocery Items</h1>
+<header class="page-header">
+    <div class="page-header__text">
+        <h1>Grocery items</h1>
+        <p class="page-subtitle">
+            @if (groceries is null)
+            {
+                <text>Loading the catalogue from this browser…</text>
+            }
+            else
+            {
+                <text>@groceries.Count() items across @CategoryCount categories, ordered by category and name.</text>
+            }
+        </p>
+    </div>
 
-<div class="mb-3">
-    <a href="/groceries/create" class="btn btn-primary">
-        <i class="bi bi-plus"></i> Add New Item
-    </a>
-</div>
+    <div class="page-actions">
+        <a class="btn btn-primary" href="/groceries/create">
+            <Icon Name="plus-lg" /> Add item
+        </a>
+    </div>
+</header>
 
-<style>
-    .category-fruit { background-color: #e3f2fd !important; border-left: 5px solid #2196f3; }
-    .category-vegetable { background-color: #e8f5e8 !important; border-left: 5px solid #2e7d32; }
-    .category-meat { background-color: #ffebee !important; border-left: 5px solid #d32f2f; }
-    .category-bread { background-color: #f3e5f5 !important; border-left: 5px solid #7b1fa2; }
-    .category-cheese { background-color: #fffde7 !important; border-left: 5px solid #f57c00; }
-    
-    .stock-controls .btn {
-        width: 30px;
-        height: 30px;
-        padding: 0;
-        font-size: 14px;
-    }
-</style>
-
-@if (groceries == null)
+@if (groceries is null)
 {
-    <p><em>Loading...</em></p>
+    <div class="loading-state">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Loading catalogue…
+    </div>
 }
 else if (!groceries.Any())
 {
-    <p><em>No grocery items found.</em></p>
+    <div class="panel">
+        <div class="empty-state">
+            <Icon Name="basket3-fill" CssClass="empty-state__icon" Size="24" />
+            <h2>No items in the catalogue</h2>
+            <p>Everything in this browser has been removed. Add an item, or restore the demo data from the home page.</p>
+            <div class="empty-state__actions">
+                <a class="btn btn-primary" href="/groceries/create">Add item</a>
+                <a class="btn btn-secondary" href="/">Restore demo data</a>
+            </div>
+        </div>
+    </div>
 }
 else
 {
-    <div class="row">
+    <div class="category-grid">
         @foreach (var category in Enum.GetValues<Category>())
         {
             var itemsInCategory = groceries.Where(g => g.Category == category).ToList();
-            if (itemsInCategory.Any())
+
+            if (itemsInCategory.Count == 0)
             {
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card category-@category.ToString().ToLower()">
-                        <div class="card-header">
-                            <h5 class="mb-0">@category</h5>
-                        </div>
-                        <div class="card-body">
-                            @foreach (var item in itemsInCategory)
-                            {
-                                <div class="mb-3 p-2 border rounded">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div class="flex-grow-1">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <strong>@item.Name</strong>
-                                                <small class="text-muted">[ID: @item.Id]</small>
-                                            </div>
-                                            <small class="text-muted">$@item.Price.ToString("F2") | Cost: $@item.CostToProduce.ToString("F2")</small><br>
-                                            <small class="text-success">Profit: $@((item.Price - item.CostToProduce).ToString("F2"))</small>
-                                            
-                                            <div class="d-flex align-items-center justify-content-between mt-2">
-                                                <div class="d-flex align-items-center">
-                                                    <span class="me-2">Stock:</span>
-                                                    <div class="stock-controls d-flex align-items-center">
-                                                        <button class="btn btn-sm btn-outline-danger me-1" @onclick="() => AdjustStock(item.Id, -1)" disabled="@(item.Stock <= 0)">-</button>
-                                                        <span class="mx-2 fw-bold">@item.Stock</span>
-                                                        <button class="btn btn-sm btn-outline-success ms-1" @onclick="() => AdjustStock(item.Id, 1)">+</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                continue;
+            }
+
+            <section class="panel">
+                <div class="panel__header">
+                    <h2 class="panel__title">
+                        <span class="chip @CategoryChip.ClassFor(category)">@category</span>
+                    </h2>
+                    <span class="text-subtle">
+                        @itemsInCategory.Count item@(itemsInCategory.Count == 1 ? string.Empty : "s") ·
+                        @itemsInCategory.Sum(i => i.Stock) in stock
+                    </span>
+                </div>
+
+                <div class="panel__body panel__body--flush">
+                    <div class="item-list">
+                        @foreach (var item in itemsInCategory)
+                        {
+                            <article class="item-row">
+                                <div class="item-row__main">
+                                    <div class="item-row__head">
+                                        <a class="item-row__name" href="/groceries/@item.Id">@item.Name</a>
+                                        <span class="item-row__id">#@item.Id</span>
                                     </div>
-                                    <div class="d-flex justify-content-end mt-2">
-                                        <a href="/groceries/@item.Id" class="btn btn-sm btn-outline-primary me-1">View</a>
-                                        <a href="/groceries/edit/@item.Id" class="btn btn-sm btn-outline-secondary me-1">Edit</a>
-                                        <a href="/groceries/delete/@item.Id" class="btn btn-sm btn-outline-danger">Delete</a>
+
+                                    <div class="item-row__figures">
+                                        <span>Price <span class="item-row__figure-value">@item.Price.ToString("C2")</span></span>
+                                        <span>Cost <span class="item-row__figure-value">@item.CostToProduce.ToString("C2")</span></span>
+                                        <span>
+                                            Margin
+                                            <span class="item-row__figure-value text-positive">@((item.Price - item.CostToProduce).ToString("C2"))</span>
+                                        </span>
                                     </div>
                                 </div>
-                            }
-                        </div>
+
+                                <div class="item-row__aside">
+                                    <div class="item-row__stock">
+                                        <span class="item-row__label">Stock</span>
+                                        <div class="stepper">
+                                            <button type="button"
+                                                    class="stepper__button"
+                                                    @onclick="() => AdjustStock(item.Id, -1)"
+                                                    disabled="@(item.Stock <= 0)"
+                                                    aria-label="@("Decrease stock for " + item.Name)">
+                                                &minus;
+                                            </button>
+                                            <span class="stepper__value" aria-live="polite">@item.Stock</span>
+                                            <button type="button"
+                                                    class="stepper__button"
+                                                    @onclick="() => AdjustStock(item.Id, 1)"
+                                                    aria-label="@("Increase stock for " + item.Name)">
+                                                +
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="row-actions">
+                                        <a class="btn btn-ghost btn-sm" href="/groceries/@item.Id">View</a>
+                                        <a class="btn btn-ghost btn-sm" href="/groceries/edit/@item.Id">Edit</a>
+                                        <a class="btn btn-outline-danger btn-sm" href="/groceries/delete/@item.Id">Delete</a>
+                                    </div>
+                                </div>
+                            </article>
+                        }
                     </div>
                 </div>
-            }
+            </section>
         }
     </div>
 }
 
 @code {
     private IEnumerable<GroceryItemDto>? groceries;
+
+    private int CategoryCount => groceries?.Select(g => g.Category).Distinct().Count() ?? 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -107,7 +144,6 @@ else
     private async Task AdjustStock(int id, int adjustment)
     {
         await GroceryService.AdjustStockAsync(id, adjustment);
-        await LoadGroceries(); // Reload to get updated stock
-        StateHasChanged();
+        await LoadGroceries();
     }
 }

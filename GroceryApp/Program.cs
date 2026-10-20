@@ -1,9 +1,15 @@
+using System.Globalization;
 using GroceryApp;
 using GroceryApp.Data;
 using GroceryApp.Data.Repositories;
 using GroceryApp.Services;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+
+// The demo ships USD prices in its seed data, so the culture is pinned instead of formatting
+// currency and dates according to each visitor's browser locale.
+CultureInfo.DefaultThreadCurrentCulture = new CultureInfo("en-US");
+CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo("en-US");
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");

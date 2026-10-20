@@ -1,15 +1,17 @@
 @page "/Error"
 
-<PageTitle>Error - Grocery Shopping App</PageTitle>
+<PageTitle>Error - Grocery App</PageTitle>
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
-
-<div class="alert alert-warning">
-    <p class="mb-0">
-        Something went wrong while rendering this page. Reload the application to return to a
-        clean state - your saved grocery catalogue is untouched.
-    </p>
+<div class="panel">
+    <div class="empty-state">
+        <Icon Name="exclamation-triangle" CssClass="empty-state__icon" Size="24" />
+        <h2>Something went wrong</h2>
+        <p>
+            The page could not be rendered. Reload the application to return to a clean state - your
+            saved catalogue is stored in the browser and is not affected.
+        </p>
+        <div class="empty-state__actions">
+            <a class="btn btn-primary" href="/">Back to home</a>
+        </div>
+    </div>
 </div>
-
-<a href="/" class="btn btn-primary">Back to Home</a>

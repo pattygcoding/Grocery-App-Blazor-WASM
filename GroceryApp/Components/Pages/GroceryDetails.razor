@@ -1,92 +1,113 @@
 @page "/groceries/{id:int}"
-@using GroceryApp.Services
-@using GroceryApp.Models.DTOs
 @inject IGroceryService GroceryService
-@inject NavigationManager Navigation
 
-<PageTitle>@(grocery?.Name ?? "Grocery Item")</PageTitle>
+<PageTitle>@(grocery?.Name ?? "Grocery item")</PageTitle>
 
 @if (grocery == null)
 {
-    <p><em>Loading...</em></p>
+    <div class="loading-state">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Loading item…
+    </div>
 }
 else if (notFound)
 {
-    <div class="alert alert-danger">
-        <h4>Not Found</h4>
-        <p>The grocery item you are looking for could not be found.</p>
-        <a href="/groceries" class="btn btn-primary">Back to Groceries</a>
+    <div class="panel">
+        <div class="empty-state">
+            <Icon Name="exclamation-triangle" CssClass="empty-state__icon" Size="24" />
+            <h2>Item not found</h2>
+            <p>The grocery item you are looking for does not exist in this browser's catalogue.</p>
+            <div class="empty-state__actions">
+                <a class="btn btn-primary" href="/groceries">Back to groceries</a>
+            </div>
+        </div>
     </div>
 }
 else
 {
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>@grocery.Name</h1>
-        <div>
-            <a href="/groceries/edit/@grocery.Id" class="btn btn-outline-primary me-2">Edit</a>
-            <a href="/groceries/delete/@grocery.Id" class="btn btn-outline-danger">Delete</a>
+    <a class="back-link" href="/groceries">
+        <Icon Name="arrow-left" CssClass="icon-sm" /> All groceries
+    </a>
+
+    <header class="page-header">
+        <div class="page-header__text">
+            <h1>@grocery.Name</h1>
+            <p class="page-subtitle">
+                <span class="chip @CategoryChip.ClassFor(grocery.Category)">@grocery.Category</span>
+                <span class="item-row__id">Item @grocery.Id</span>
+            </p>
         </div>
-    </div>
 
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <dl class="row">
-                        <dt class="col-sm-4">Name</dt>
-                        <dd class="col-sm-8">@grocery.Name</dd>
+        <div class="page-actions">
+            <a class="btn btn-secondary" href="/groceries/edit/@grocery.Id">
+                <Icon Name="pencil-square" /> Edit
+            </a>
+            <a class="btn btn-outline-danger" href="/groceries/delete/@grocery.Id">
+                <Icon Name="trash3" /> Delete
+            </a>
+        </div>
+    </header>
 
-                        <dt class="col-sm-4">Category</dt>
-                        <dd class="col-sm-8">
-                            <span class="badge bg-secondary">@grocery.Category</span>
-                        </dd>
-
-                        <dt class="col-sm-4">Price</dt>
-                        <dd class="col-sm-8">$@grocery.Price.ToString("F2")</dd>
-
-                        <dt class="col-sm-4">Cost to Produce</dt>
-                        <dd class="col-sm-8">$@grocery.CostToProduce.ToString("F2")</dd>
-
-                        <dt class="col-sm-4">Profit Margin</dt>
-                        <dd class="col-sm-8">$@((grocery.Price - grocery.CostToProduce).ToString("F2"))</dd>
-
-                        <dt class="col-sm-4">Stock</dt>
-                        <dd class="col-sm-8">
-                            @if (grocery.Stock > 0)
-                            {
-                                <span class="badge bg-success">@grocery.Stock in stock</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-danger">Out of stock</span>
-                            }
-                        </dd>
-
-                        <dt class="col-sm-4">Created</dt>
-                        <dd class="col-sm-8">@grocery.CreatedUtc.ToString("MMM d, yyyy 'at' h:mm tt")</dd>
-                    </dl>
+    <div class="panel">
+        <div class="panel__body">
+            <dl class="detail-grid">
+                <div class="detail-row">
+                    <dt>Unit price</dt>
+                    <dd class="tnum">@grocery.Price.ToString("C2")</dd>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="mt-3">
-        <a href="/groceries" class="btn btn-secondary">Back to List</a>
+                <div class="detail-row">
+                    <dt>Cost to produce</dt>
+                    <dd class="tnum">@grocery.CostToProduce.ToString("C2")</dd>
+                </div>
+
+                <div class="detail-row">
+                    <dt>Margin per unit</dt>
+                    <dd class="tnum">
+                        @Margin.ToString("C2")
+                        <span class="text-subtle">(@MarginPercent.ToString("0.0")% of price)</span>
+                    </dd>
+                </div>
+
+                <div class="detail-row">
+                    <dt>Stock on hand</dt>
+                    <dd>
+                        @if (grocery.Stock > 0)
+                        {
+                            <span class="chip chip--positive">@grocery.Stock in stock</span>
+                        }
+                        else
+                        {
+                            <span class="chip chip--danger">Out of stock</span>
+                        }
+                    </dd>
+                </div>
+
+                <div class="detail-row">
+                    <dt>Stock value at price</dt>
+                    <dd class="tnum">@((grocery.Stock * grocery.Price).ToString("C2"))</dd>
+                </div>
+
+                <div class="detail-row">
+                    <dt>Created</dt>
+                    <dd>@grocery.CreatedUtc.ToString("d MMM yyyy, HH:mm") UTC</dd>
+                </div>
+            </dl>
+        </div>
     </div>
 }
 
 @code {
     [Parameter] public int Id { get; set; }
-    
+
     private GroceryItemDto? grocery;
-    private bool notFound = false;
+    private bool notFound;
+
+    private decimal Margin => grocery is null ? 0m : grocery.Price - grocery.CostToProduce;
+
+    private decimal MarginPercent => grocery is null || grocery.Price == 0m ? 0m : Margin / grocery.Price * 100m;
 
     protected override async Task OnInitializedAsync()
-    {
-        await LoadGrocery();
-    }
-
-    private async Task LoadGrocery()
     {
         grocery = await GroceryService.GetGroceryByIdAsync(Id);
         notFound = grocery == null;

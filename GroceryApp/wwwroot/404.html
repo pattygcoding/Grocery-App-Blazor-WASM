@@ -3,7 +3,25 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>Grocery Shopping App</title>
+    <title>Grocery App</title>
+    <style>
+        /* Shown for the fraction of a second before the redirect to index.html. */
+        body {
+            align-items: center;
+            background-color: #f4f5f7;
+            color: #4a5464;
+            display: flex;
+            font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            font-size: 0.9375rem;
+            justify-content: center;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body { background-color: #0b0f19; color: #a7b0c0; }
+        }
+    </style>
     <script>
         // Static hosting has no rewrite rules, so GitHub Pages answers any unknown path with this
         // file (HTTP 404). That is expected for client side routes such as /groceries/edit/3.

@@ -4,12 +4,12 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Grocery Shopping App - Blazor WebAssembly</title>
-    <meta name="description" content="A front-end only Blazor WebAssembly grocery manager: client side CRUD, browser storage and in-browser Excel reports. Hosted on GitHub Pages." />
+    <title>Grocery App - Blazor WebAssembly</title>
+    <meta name="description" content="Front-end only Blazor WebAssembly grocery catalogue: client side CRUD, localStorage persistence and in-browser Excel reports, hosted on GitHub Pages." />
+    <meta name="color-scheme" content="light dark" />
     <base href="/" />
     <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="app.css" />
-    <link rel="stylesheet" href="GroceryApp.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <script>
         // GitHub Pages serves 404.html for any path it does not have a file for, which is how
@@ -27,20 +27,80 @@
         })();
     </script>
     <style>
-        #app .loading-shell {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            padding: 4rem 2rem;
+        /* First paint, before Blazor takes over. Kept inline so it renders without waiting
+           for app.css, and themed with prefers-color-scheme to avoid a brightness jump. */
+        .boot {
+            align-items: center;
+            color: #4a5464;
+            display: flex;
+            flex-direction: column;
+            font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            gap: 0.6rem;
+            justify-content: center;
+            min-height: 70vh;
             text-align: center;
-            color: #052767;
+        }
+
+        .boot__mark {
+            align-items: center;
+            background-color: #4338ca;
+            border-radius: 10px;
+            color: #ffffff;
+            display: flex;
+            font-size: 0.9rem;
+            font-weight: 600;
+            height: 44px;
+            justify-content: center;
+            letter-spacing: 0.02em;
+            width: 44px;
+        }
+
+        .boot__title {
+            color: #101828;
+            font-size: 1.0625rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .boot__note {
+            font-size: 0.875rem;
+            margin: 0;
+        }
+
+        .boot__bar {
+            animation: boot-progress 1.2s ease-in-out infinite;
+            background-color: #4338ca;
+            border-radius: 999px;
+            height: 3px;
+            margin-top: 0.4rem;
+            width: 96px;
+        }
+
+        @keyframes boot-progress {
+            0%, 100% { opacity: 0.3; transform: scaleX(0.35); }
+            50% { opacity: 1; transform: scaleX(1); }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .boot { color: #a7b0c0; }
+            .boot__mark { background-color: #a5b0ff; color: #0b0f19; }
+            .boot__title { color: #eef1f6; }
+            .boot__bar { background-color: #a5b0ff; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .boot__bar { animation: none; opacity: 0.6; transform: none; }
         }
     </style>
 </head>
 
 <body>
     <div id="app">
-        <div class="loading-shell">
-            <h1>🛒 Grocery Shopping App</h1>
-            <p>Loading Blazor WebAssembly…</p>
+        <div class="boot">
+            <span class="boot__mark">GA</span>
+            <p class="boot__title">Grocery App</p>
+            <p class="boot__note">Starting Blazor WebAssembly…</p>
+            <span class="boot__bar" aria-hidden="true"></span>
         </div>
     </div>
 

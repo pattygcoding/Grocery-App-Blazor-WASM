@@ -1,75 +1,105 @@
 @page "/groceries/edit/{id:int}"
-@using GroceryApp.Services
-@using GroceryApp.Models.DTOs
-@using GroceryApp.Models
 @inject IGroceryService GroceryService
 @inject NavigationManager Navigation
 
-<PageTitle>Edit Grocery Item</PageTitle>
+<PageTitle>Edit grocery item</PageTitle>
 
-@if (grocery == null)
+@if (grocery is null && !notFound)
 {
-    <p><em>Loading...</em></p>
+    <div class="loading-state">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Loading item…
+    </div>
 }
 else if (notFound)
 {
-    <div class="alert alert-danger">
-        <h4>Not Found</h4>
-        <p>The grocery item you are trying to edit could not be found.</p>
-        <a href="/groceries" class="btn btn-primary">Back to Groceries</a>
+    <div class="panel">
+        <div class="empty-state">
+            <Icon Name="exclamation-triangle" CssClass="empty-state__icon" Size="24" />
+            <h2>Item not found</h2>
+            <p>The grocery item you are trying to edit does not exist in this browser's catalogue.</p>
+            <div class="empty-state__actions">
+                <a class="btn btn-primary" href="/groceries">Back to groceries</a>
+            </div>
+        </div>
     </div>
 }
 else
 {
-    <h1>Edit @grocery.Name</h1>
+    <a class="back-link" href="/groceries/@Id">
+        <Icon Name="arrow-left" CssClass="icon-sm" /> Back to item
+    </a>
 
-    <div class="row">
-        <div class="col-md-6">
-            <EditForm Model="@updateModel" OnValidSubmit="@HandleValidSubmit">
+    <header class="page-header">
+        <div class="page-header__text">
+            <h1>Edit @grocery!.Name</h1>
+            <p class="page-subtitle">
+                <span class="chip @CategoryChip.ClassFor(grocery.Category)">@grocery.Category</span>
+                <span class="item-row__id">Item @grocery.Id</span>
+            </p>
+        </div>
+    </header>
+
+    <div class="panel panel--narrow">
+        <div class="panel__body">
+            @* See CreateGrocery.razor: Blazor validation is authoritative, so native constraint
+               validation is disabled to avoid swallowing the submit event. *@
+            <EditForm Model="@updateModel" OnValidSubmit="@HandleValidSubmit" novalidate>
                 <DataAnnotationsValidator />
-                <ValidationSummary class="text-danger" />
+                <ValidationSummary />
 
-                <div class="mb-3">
-                    <label for="name" class="form-label">Name</label>
-                    <InputText id="name" class="form-control" @bind-Value="updateModel.Name" />
-                    <ValidationMessage For="() => updateModel.Name" />
+                @if (!string.IsNullOrEmpty(submitError))
+                {
+                    <div class="alert alert--danger">
+                        <p class="alert__title">
+                            <Icon Name="exclamation-triangle" CssClass="icon-sm" /> The changes could not be saved
+                        </p>
+                        <p class="mb-0">@submitError</p>
+                    </div>
+                }
+
+                <div class="form-grid">
+                    <div>
+                        <label class="form-label" for="name">Name</label>
+                        <InputText id="name" class="form-control" @bind-Value="updateModel.Name" />
+                        <ValidationMessage For="() => updateModel.Name" />
+                    </div>
+
+                    <div>
+                        <label class="form-label" for="category">Category</label>
+                        <InputSelect id="category" class="form-control" @bind-Value="updateModel.Category">
+                            @foreach (var category in Enum.GetValues<Category>())
+                            {
+                                <option value="@category">@category</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="() => updateModel.Category" />
+                    </div>
+
+                    <div>
+                        <label class="form-label" for="price">Unit price</label>
+                        <InputNumber id="price" class="form-control" @bind-Value="updateModel.Price" step="0.01" min="0.01" />
+                        <ValidationMessage For="() => updateModel.Price" />
+                    </div>
+
+                    <div>
+                        <label class="form-label" for="cost">Cost to produce</label>
+                        <InputNumber id="cost" class="form-control" @bind-Value="updateModel.CostToProduce" step="0.01" min="0.01" />
+                        <ValidationMessage For="() => updateModel.CostToProduce" />
+                    </div>
+
+                    <div>
+                        <label class="form-label" for="stock">Stock on hand</label>
+                        <InputNumber id="stock" class="form-control" @bind-Value="updateModel.Stock" min="0" />
+                        <ValidationMessage For="() => updateModel.Stock" />
+                    </div>
                 </div>
 
-                <div class="mb-3">
-                    <label for="category" class="form-label">Category</label>
-                    <InputSelect id="category" class="form-control" @bind-Value="updateModel.Category">
-                        <option value="">Select a category...</option>
-                        @foreach (var category in Enum.GetValues<Category>())
-                        {
-                            <option value="@category">@category</option>
-                        }
-                    </InputSelect>
-                    <ValidationMessage For="() => updateModel.Category" />
-                </div>
-
-                <div class="mb-3">
-                    <label for="price" class="form-label">Price</label>
-                    <InputNumber id="price" class="form-control" @bind-Value="updateModel.Price" 
-                                 step="0.01" min="0.01" />
-                    <ValidationMessage For="() => updateModel.Price" />
-                </div>
-
-                <div class="mb-3">
-                    <label for="costToProduce" class="form-label">Cost to Produce</label>
-                    <InputNumber id="costToProduce" class="form-control" @bind-Value="updateModel.CostToProduce" 
-                                 step="0.01" min="0.01" />
-                    <ValidationMessage For="() => updateModel.CostToProduce" />
-                </div>
-
-                <div class="mb-3">
-                    <label for="stock" class="form-label">Stock</label>
-                    <InputNumber id="stock" class="form-control" @bind-Value="updateModel.Stock" />
-                    <ValidationMessage For="() => updateModel.Stock" />
-                </div>
-
-                <div class="mb-3">
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                    <a href="/groceries/@Id" class="btn btn-secondary ms-2">Cancel</a>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <Icon Name="check2-circle" /> Save changes
+                    </button>
+                    <a class="btn btn-secondary" href="/groceries/@Id">Cancel</a>
                 </div>
             </EditForm>
         </div>
@@ -78,26 +108,22 @@ else
 
 @code {
     [Parameter] public int Id { get; set; }
-    
+
     private GroceryItemDto? grocery;
     private UpdateGroceryItemDto updateModel = new();
-    private bool notFound = false;
+    private bool notFound;
+    private string? submitError;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadGrocery();
-    }
-
-    private async Task LoadGrocery()
-    {
         grocery = await GroceryService.GetGroceryByIdAsync(Id);
-        if (grocery == null)
+
+        if (grocery is null)
         {
             notFound = true;
             return;
         }
 
-        // Map to update model
         updateModel = new UpdateGroceryItemDto
         {
             Name = grocery.Name,
@@ -110,21 +136,23 @@ else
 
     private async Task HandleValidSubmit()
     {
+        submitError = null;
+
         try
         {
             var result = await GroceryService.UpdateGroceryAsync(Id, updateModel);
-            if (result != null)
-            {
-                Navigation.NavigateTo($"/groceries/{Id}");
-            }
-            else
+
+            if (result is null)
             {
                 notFound = true;
+                return;
             }
+
+            Navigation.NavigateTo($"/groceries/{Id}");
         }
         catch (Exception ex)
         {
-            // Handle error - in a real app you'd want better error handling
+            submitError = "The changes could not be written to browser storage. Please try again.";
             Console.WriteLine($"Error updating grocery item: {ex.Message}");
         }
     }

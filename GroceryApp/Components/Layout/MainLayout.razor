@@ -1,34 +1,44 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 
-<div class="page">
-    <div class="sidebar">
+<div class="app-shell">
+    <aside class="app-sidebar">
         <NavMenu />
-    </div>
+    </aside>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://github.com/pattygcoding/Grocery-App-Blazor" target="_blank" rel="noopener">Legacy Blazor Server app</a>
-            <a href="https://github.com/pattygcoding/Grocery-App-Blazor-WASM" target="_blank" rel="noopener">Source</a>
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank" rel="noopener">About</a>
-        </div>
+    <div class="app-main">
+        <header class="app-topbar">
+            <p class="app-topbar__note">Demo data stays in this browser - nothing is uploaded.</p>
 
-        <article class="content px-4">
+            <div class="app-topbar__links">
+                <a class="topbar-link" href="https://github.com/pattygcoding/Grocery-App-Blazor" target="_blank" rel="noopener">
+                    <Icon Name="github" CssClass="icon-sm" />
+                    Legacy Blazor Server app
+                </a>
+                <a class="topbar-link" href="https://github.com/pattygcoding/Grocery-App-Blazor-WASM" target="_blank" rel="noopener">
+                    <Icon Name="code-slash" CssClass="icon-sm" />
+                    Source
+                </a>
+            </div>
+        </header>
+
+        <main class="app-content">
             @Body
-        </article>
+        </main>
 
-        <footer class="app-footer px-4">
-            <small>
+        <footer class="app-footer">
+            <p>
                 Front-end only Blazor WebAssembly port of the
                 <a href="https://github.com/pattygcoding/Grocery-App-Blazor" target="_blank" rel="noopener">legacy Blazor Server application</a>
-                (Blazor Server + EF Core + SQLite with ClosedXML reports). This version has no server,
-                database or API - everything runs in your browser.
-            </small>
+                (Blazor Server with EF Core, SQLite and ClosedXML reports). This build has no server,
+                database or API: the catalogue is stored in your browser and the Excel workbook is
+                generated in C# on the client.
+            </p>
         </footer>
-    </main>
+    </div>
 </div>
 
 <div id="blazor-error-ui">
-    An unhandled error has occurred.
-    <a href="" class="reload">Reload</a>
-    <a class="dismiss">🗙</a>
+    Something went wrong while rendering the page.
+    <a href="" class="reload">Reload the app</a>
+    <span class="dismiss" role="button" tabindex="0" aria-label="Dismiss">&#10005;</span>
 </div>

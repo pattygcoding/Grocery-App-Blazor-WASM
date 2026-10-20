@@ -1,0 +1,42 @@
+@* Renders a glyph from the bundled sprite (wwwroot/icons.svg). *@
+<svg class="icon @CssClass"
+     width="@Size"
+     height="@Size"
+     viewBox="0 0 16 16"
+     fill="currentColor"
+     role="@Role"
+     aria-label="@AriaLabel"
+     aria-hidden="@AriaHidden"
+     focusable="false">
+    <use href="icons.svg#i-@Name"></use>
+</svg>
+
+@code {
+    /// <summary>
+    /// Sprite glyph id, for example "basket3-fill". See wwwroot/icons.svg for the full list.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Extra classes applied to the svg element (sizing, colour).</summary>
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    /// <summary>Rendered size in pixels.</summary>
+    [Parameter]
+    public int Size { get; set; } = 16;
+
+    /// <summary>
+    /// Accessible name. When it is omitted the icon is treated as decorative and hidden from
+    /// assistive technology, which is what you want whenever the surrounding text or control
+    /// already carries the meaning.
+    /// </summary>
+    [Parameter]
+    public string? AriaLabel { get; set; }
+
+    private bool IsDecorative => string.IsNullOrEmpty(AriaLabel);
+
+    private string? AriaHidden => IsDecorative ? "true" : null;
+
+    private string? Role => IsDecorative ? null : "img";
+}

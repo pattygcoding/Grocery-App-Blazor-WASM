@@ -1,109 +1,141 @@
 @page "/groceries/delete/{id:int}"
-@using GroceryApp.Services
-@using GroceryApp.Models.DTOs
 @inject IGroceryService GroceryService
 @inject NavigationManager Navigation
 
-<PageTitle>Delete Grocery Item</PageTitle>
+<PageTitle>Delete grocery item</PageTitle>
 
-@if (grocery == null)
+@if (grocery is null && !notFound)
 {
-    <p><em>Loading...</em></p>
+    <div class="loading-state">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Loading item…
+    </div>
 }
 else if (notFound)
 {
-    <div class="alert alert-danger">
-        <h4>Not Found</h4>
-        <p>The grocery item you are trying to delete could not be found.</p>
-        <a href="/groceries" class="btn btn-primary">Back to Groceries</a>
+    <div class="panel">
+        <div class="empty-state">
+            <Icon Name="exclamation-triangle" CssClass="empty-state__icon" Size="24" />
+            <h2>Item not found</h2>
+            <p>The grocery item you are trying to delete does not exist in this browser's catalogue.</p>
+            <div class="empty-state__actions">
+                <a class="btn btn-primary" href="/groceries">Back to groceries</a>
+            </div>
+        </div>
     </div>
 }
 else
 {
-    <div class="alert alert-warning">
-        <h4>Confirm Deletion</h4>
-        <p>Are you sure you want to delete this grocery item?</p>
-    </div>
+    <a class="back-link" href="/groceries/@Id">
+        <Icon Name="arrow-left" CssClass="icon-sm" /> Back to item
+    </a>
 
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">@grocery.Name</h5>
-                </div>
-                <div class="card-body">
-                    <dl class="row">
-                        <dt class="col-sm-4">Category</dt>
-                        <dd class="col-sm-8">
-                            <span class="badge bg-secondary">@grocery.Category</span>
-                        </dd>
-
-                        <dt class="col-sm-4">Price</dt>
-                        <dd class="col-sm-8">$@grocery.Price.ToString("F2")</dd>
-
-                        <dt class="col-sm-4">Stock</dt>
-                        <dd class="col-sm-8">@grocery.Stock</dd>
-
-                        <dt class="col-sm-4">Created</dt>
-                        <dd class="col-sm-8">@grocery.CreatedUtc.ToString("MMM d, yyyy 'at' h:mm tt")</dd>
-                    </dl>
-                </div>
-            </div>
+    <header class="page-header">
+        <div class="page-header__text">
+            <h1>Delete @grocery!.Name</h1>
+            <p class="page-subtitle">
+                The item is removed from this browser's catalogue. This cannot be undone, although the
+                demo data can be restored from the home page.
+            </p>
         </div>
-    </div>
+    </header>
 
-    <div class="mt-4">
-        <EditForm Model="@this" OnSubmit="@HandleDelete">
-            <button type="submit" class="btn btn-danger me-2" disabled="@isDeleting">
-                @if (isDeleting)
-                {
-                    <span class="spinner-border spinner-border-sm me-1"></span>
-                }
-                Delete Item
-            </button>
-            <a href="/groceries/@Id" class="btn btn-secondary">Cancel</a>
-        </EditForm>
+    <div class="panel panel--danger panel--narrow">
+        <div class="panel__header">
+            <h2 class="panel__title">
+                <Icon Name="exclamation-triangle" /> Confirm deletion
+            </h2>
+        </div>
+
+        <div class="panel__body">
+            @if (!string.IsNullOrEmpty(deleteError))
+            {
+                <div class="alert alert--danger">
+                    <p class="alert__title">
+                        <Icon Name="exclamation-triangle" CssClass="icon-sm" /> The item could not be deleted
+                    </p>
+                    <p class="mb-0">@deleteError</p>
+                </div>
+            }
+
+            <dl class="detail-grid">
+                <div class="detail-row">
+                    <dt>Name</dt>
+                    <dd>@grocery.Name</dd>
+                </div>
+                <div class="detail-row">
+                    <dt>Category</dt>
+                    <dd><span class="chip @CategoryChip.ClassFor(grocery.Category)">@grocery.Category</span></dd>
+                </div>
+                <div class="detail-row">
+                    <dt>Unit price</dt>
+                    <dd class="tnum">@grocery.Price.ToString("C2")</dd>
+                </div>
+                <div class="detail-row">
+                    <dt>Stock on hand</dt>
+                    <dd class="tnum">@grocery.Stock</dd>
+                </div>
+                <div class="detail-row">
+                    <dt>Created</dt>
+                    <dd>@grocery.CreatedUtc.ToString("d MMM yyyy, HH:mm") UTC</dd>
+                </div>
+            </dl>
+
+            <EditForm Model="@this" OnSubmit="@HandleDelete" novalidate>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-danger" disabled="@isDeleting">
+                        @if (isDeleting)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        }
+                        <Icon Name="trash3" /> Delete item
+                    </button>
+                    <a class="btn btn-secondary" href="/groceries/@Id">Cancel</a>
+                </div>
+            </EditForm>
+        </div>
     </div>
 }
 
 @code {
     [Parameter] public int Id { get; set; }
-    
+
     private GroceryItemDto? grocery;
-    private bool notFound = false;
-    private bool isDeleting = false;
+    private bool notFound;
+    private bool isDeleting;
+    private string? deleteError;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadGrocery();
-    }
-
-    private async Task LoadGrocery()
-    {
         grocery = await GroceryService.GetGroceryByIdAsync(Id);
-        notFound = grocery == null;
+        notFound = grocery is null;
     }
 
     private async Task HandleDelete()
     {
-        if (grocery == null) return;
+        if (grocery is null)
+        {
+            return;
+        }
 
         isDeleting = true;
+        deleteError = null;
+
         try
         {
-            var result = await GroceryService.DeleteGroceryAsync(Id);
-            if (result)
-            {
-                Navigation.NavigateTo("/groceries");
-            }
-            else
+            var deleted = await GroceryService.DeleteGroceryAsync(Id);
+
+            if (!deleted)
             {
                 notFound = true;
+                return;
             }
+
+            Navigation.NavigateTo("/groceries");
         }
         catch (Exception ex)
         {
-            // Handle error - in a real app you'd want better error handling
+            deleteError = "The item could not be removed from browser storage. Please try again.";
             Console.WriteLine($"Error deleting grocery item: {ex.Message}");
         }
         finally
