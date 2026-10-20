@@ -4,11 +4,11 @@
 <PageTitle>Grocery catalogue - Blazor WebAssembly</PageTitle>
 
 <section class="hero">
-    <span class="chip chip--brand">Blazor WebAssembly · .NET 8 · GitHub Pages</span>
-    <h1>Grocery catalogue management, entirely in the browser</h1>
+    <span class="chip chip--brand">Blazor WebAssembly · .NET 8 · personal project</span>
+    <h1>A grocery catalogue built with Blazor WebAssembly</h1>
     <p class="hero__lead">
-        Add items, adjust stock and review margins without a back end. C# runs on WebAssembly, the
-        catalogue is persisted to this browser, and the analytics workbook is generated on the client.
+        I built this to keep track of the groceries I price and restock: add items, adjust stock and
+        review margins, with C# running in the browser and the Excel workbook written on the client.
     </p>
 
     <div class="hero__actions">
@@ -34,21 +34,21 @@
             <span class="hero__meta-value">localStorage</span>
         </div>
         <div>
-            <span class="hero__meta-label">Backend services</span>
-            <span class="hero__meta-value tnum">0</span>
+            <span class="hero__meta-label">Written in</span>
+            <span class="hero__meta-value">C#</span>
         </div>
     </div>
 </section>
 
-<h2 class="section-title">What it does</h2>
+<h2 class="section-title">What's in it</h2>
 
 <div class="panel-grid">
     <article class="panel">
         <div class="panel__body">
             <span class="feature__icon"><Icon Name="plus-lg" Size="18" /></span>
-            <h3 class="feature__title">Catalogue management</h3>
+            <h3 class="feature__title">The catalogue</h3>
             <p class="feature__text">
-                Create, edit and delete items with validated name, category, price, cost and stock fields.
+                Add, edit and delete items, with name, category, price, cost and stock all validated.
             </p>
         </div>
     </article>
@@ -56,20 +56,20 @@
     <article class="panel">
         <div class="panel__body">
             <span class="feature__icon"><Icon Name="grid-3x3-gap" Size="18" /></span>
-            <h3 class="feature__title">Category organisation</h3>
+            <h3 class="feature__title">Five categories</h3>
             <p class="feature__text">
-                Fruits, vegetables, meats, cheeses and breads, grouped as cards with per-category counts.
+                Fruits, vegetables, meats, cheeses and breads, grouped into cards with a count for each.
             </p>
         </div>
     </article>
 
     <article class="panel">
         <div class="panel__body">
-            <span class="feature__icon"><Icon Name="database" Size="18" /></span>
-            <h3 class="feature__title">Browser persistence</h3>
+            <span class="feature__icon"><Icon Name="boxes" Size="18" /></span>
+            <h3 class="feature__title">Stock control</h3>
             <p class="feature__text">
-                The catalogue is written to localStorage through JS interop, so changes survive a reload
-                without a server. Reset the demo data at any time.
+                Nudge stock straight from the list with the - and + buttons, or open an item to change
+                everything at once.
             </p>
         </div>
     </article>
@@ -77,9 +77,9 @@
     <article class="panel">
         <div class="panel__body">
             <span class="feature__icon"><Icon Name="bar-chart-fill" Size="18" /></span>
-            <h3 class="feature__title">Analytics</h3>
+            <h3 class="feature__title">Reports</h3>
             <p class="feature__text">
-                Profit potential, category performance, stock coverage and price bands, all computed on the fly.
+                Profit potential, category performance, stock coverage and price bands, worked out as you go.
             </p>
         </div>
     </article>
@@ -89,17 +89,17 @@
             <span class="feature__icon"><Icon Name="file-earmark-spreadsheet" Size="18" /></span>
             <h3 class="feature__title">Excel export</h3>
             <p class="feature__text">
-                A five sheet workbook is written as Open XML in C# in the browser - no ClosedXML, no server round trip.
+                A five sheet workbook written as Open XML in C#, downloaded straight from the page.
             </p>
         </div>
     </article>
 
     <article class="panel">
         <div class="panel__body">
-            <span class="feature__icon"><Icon Name="shield-check" Size="18" /></span>
-            <h3 class="feature__title">Validation</h3>
+            <span class="feature__icon"><Icon Name="database" Size="18" /></span>
+            <h3 class="feature__title">Saved in your browser</h3>
             <p class="feature__text">
-                Data annotations drive field level validation and user feedback on every form.
+                The catalogue is kept in localStorage, so it is still there the next time you open the page.
             </p>
         </div>
     </article>
@@ -116,7 +116,7 @@
             <ul class="list-check">
                 <li>
                     <Icon Name="check2-circle" CssClass="icon-sm" />
-                    <span>Blazor WebAssembly on .NET 8 - C# compiled to WebAssembly, served as static files</span>
+                    <span>Blazor WebAssembly on .NET 8 - C# compiled to WebAssembly and running in the browser</span>
                 </li>
                 <li>
                     <Icon Name="check2-circle" CssClass="icon-sm" />
@@ -128,7 +128,7 @@
                 </li>
                 <li>
                     <Icon Name="check2-circle" CssClass="icon-sm" />
-                    <span>Open XML workbook writer with no third party dependencies</span>
+                    <span>Hand-written Open XML workbook writer behind the Excel export</span>
                 </li>
                 <li>
                     <Icon Name="check2-circle" CssClass="icon-sm" />
@@ -144,8 +144,8 @@
         </div>
         <div class="panel__body">
             <p class="feature__text">
-                50 demo items spread evenly across the five categories. The seed data ships inside the
-                assembly and is written to this browser on first load.
+                I seeded 50 demo items, spread evenly across the five categories, so there is something
+                to poke at straight away.
             </p>
             <div class="tag-cloud mt-3">
                 @foreach (var category in Enum.GetValues<Category>())
@@ -162,12 +162,12 @@
 <div class="split">
     <section class="panel">
         <div class="panel__header">
-            <h3 class="panel__title"><Icon Name="github" /> Ported from the Blazor Server application</h3>
+            <h3 class="panel__title"><Icon Name="github" /> Ported from my Blazor Server app</h3>
         </div>
         <div class="panel__body">
             <p class="feature__text">
-                This WebAssembly build is a front-end only port of the original full-stack application:
-                Blazor Server with EF Core, SQLite and ClosedXML reports. That repository is kept for reference.
+                This is my second pass at the same idea. The original was written with Blazor Server,
+                EF Core, SQLite and ClosedXML reports, and I kept that repository up for reference.
             </p>
             <div class="row-actions mt-3">
                 <a class="btn btn-secondary" href="https://github.com/pattygcoding/Grocery-App-Blazor" target="_blank" rel="noopener">
@@ -186,7 +186,8 @@
         </div>
         <div class="panel__body">
             <p class="feature__text">
-                Every change is stored in this browser only. Restore the original 50 items whenever you like.
+                Everything you change is kept in this browser, so feel free to experiment. Restore the
+                original 50 items whenever you like.
             </p>
             <button class="btn btn-secondary mt-3" @onclick="ResetDemoData" disabled="@isResetting">
                 @if (isResetting)

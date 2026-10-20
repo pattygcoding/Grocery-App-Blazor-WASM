@@ -276,3 +276,6 @@ test_closedxml_report.xlsx
 # Local environment files
 .env
 .env.local
+
+# Local agent / browser-automation scratch output
+.playwright-mcp/

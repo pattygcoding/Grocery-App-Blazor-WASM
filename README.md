@@ -1,12 +1,13 @@
-# Grocery Shopping App - Blazor WebAssembly (front-end only)
+# Grocery Shopping App - Blazor WebAssembly
 
-A **front-end only** Blazor WebAssembly application for managing grocery items, and the
-WebAssembly port of [Grocery-App-Blazor](https://github.com/pattygcoding/Grocery-App-Blazor)
-(which is a full-stack Blazor Server app with EF Core and SQLite).
+A personal project by [Patrick Goodwin](https://pattygcoding.com): a grocery catalogue written in
+C#, which I moved from my earlier
+[Grocery-App-Blazor](https://github.com/pattygcoding/Grocery-App-Blazor) app (a full-stack Blazor
+Server application with EF Core and SQLite) to a Blazor WebAssembly build.
 
-There is **no server, no database and no API**: C# runs in the browser via WebAssembly, the
-catalogue is persisted to the browser's `localStorage`, and the Excel report is generated
-client side. The whole thing is published as static files to GitHub Pages.
+C# runs in the browser through WebAssembly, the catalogue is kept in the browser's `localStorage`,
+and the Excel report is generated client side. The build is published as static files to
+GitHub Pages.
 
 **Live demo:** <https://blazor.pattygcoding.com>
 
@@ -18,7 +19,7 @@ client side. The whole thing is published as static files to GitHub Pages.
 | Persistence | EF Core 9 + SQLite database | `localStorage` through JS interop, seeded from an embedded `SeedData.json` |
 | Data access | `DbContext` + repository | Repository over a browser storage abstraction (`IGroceryStore`) |
 | Excel export | ClosedXML + REST endpoint `/api/reports/export-excel` | `XlsxExportService`, a dependency-free Open XML writer, downloads the file from the browser |
-| API endpoints | `GroceriesController`, `ReportsController`, Swagger | Not present (nothing to talk to) |
+| API endpoints | `GroceriesController`, `ReportsController`, Swagger | Retired - the pages call the service layer directly |
 | Client side routing | Server side routing | Static host + `404.html` fallback so deep links and refreshes work on GitHub Pages |
 | Tests | Service layer (xUnit + NSubstitute) | Same service tests, plus repository/storage and workbook generation tests |
 
@@ -97,7 +98,7 @@ The interface is built on a token driven design system in `GroceryApp/wwwroot/ap
 - Blazor WebAssembly (standalone)
 - `System.Text.Json` source generated serialization (trim safe)
 - JS interop for `localStorage` and file downloads
-- Hand written Open XML (.xlsx) generation - no ClosedXML, no server
+- Hand written Open XML (.xlsx) generation in the browser (no ClosedXML dependency)
 - Bootstrap 5.1 for the grid and form basics, restyled by the design system above
 - xUnit + NSubstitute for testing
 - GitHub Actions + GitHub Pages for hosting
