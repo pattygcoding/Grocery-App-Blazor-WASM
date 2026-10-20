@@ -232,6 +232,29 @@ textarea:focus-visible {
     box-shadow: var(--focus-ring);
 }
 
+/* FocusOnNavigate (Routes.razor) moves focus to the page heading after every navigation so screen
+   readers announce the new page. That heading is not interactive and is kept out of the tab order
+   (tabindex="-1"), so its focus ring is suppressed - otherwise the browser paints a default outline
+   around the title on first paint, which reads as a rendering bug. Keyboard focus indicators on
+   real controls are unaffected (see the rule above). */
+h1:focus,
+h1:focus-visible {
+    box-shadow: none;
+    outline: none;
+}
+
+/* Bootstrap 5.1 paints its own blue focus ring on buttons, which outranks the global
+   :focus-visible rule above. Keep one indicator across the app: the token ring for keyboard focus,
+   and nothing on a mouse click. */
+.btn:focus:not(:focus-visible) {
+    box-shadow: none;
+}
+
+.btn:focus-visible {
+    box-shadow: var(--focus-ring);
+    outline: none;
+}
+
 ::selection {
     background: var(--brand-soft);
     color: var(--text);
