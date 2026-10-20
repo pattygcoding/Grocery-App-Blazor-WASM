@@ -56,6 +56,54 @@ public interface IGroceryService
     Task<GroceryItemDto?> AdjustStockAsync(int id, int adjustment);
 
     /// <summary>
+    /// Adds stock to several items in one operation, recording each line in the activity log.
+    /// </summary>
+    /// <param name="quantities">Units to add, keyed by item identifier. Zero and negative quantities are ignored.</param>
+    /// <returns>The items that were restocked.</returns>
+    /// <remarks>
+    /// A separate method rather than a loop over <see cref="AdjustStockAsync"/>, because a restock is one
+    /// change to the catalogue: it is written once, logged as one batch, and can be undone in one step.
+    /// </remarks>
+    Task<IReadOnlyList<GroceryItemDto>> ApplyRestockAsync(IReadOnlyDictionary<int, int> quantities);
+
+    /// <summary>
+    /// Archives or restores one item.
+    /// </summary>
+    /// <param name="id">The unique identifier of the grocery item.</param>
+    /// <param name="archived">True to archive the item, false to put it back in the catalogue.</param>
+    /// <returns>The updated grocery item DTO, or null if the item was not found.</returns>
+    /// <remarks>
+    /// Archiving is a change to the catalogue like any other, so it is logged and can be undone. It is not
+    /// a delete: the item keeps its history, its code and its position in the value held figures unless the
+    /// catalogue is asked for archived items.
+    /// </remarks>
+    Task<GroceryItemDto?> SetArchivedAsync(int id, bool archived);
+
+    /// <summary>
+    /// Archives or restores several items as one change.
+    /// </summary>
+    /// <param name="ids">The identifiers to change. Unknown identifiers are ignored.</param>
+    /// <param name="archived">True to archive, false to restore.</param>
+    /// <returns>The items that actually changed.</returns>
+    /// <remarks>
+    /// One write and one history step for the batch, so archiving twenty rows from the list is one undo
+    /// rather than twenty. Identifiers already in the requested state are left alone rather than logged
+    /// again.
+    /// </remarks>
+    Task<IReadOnlyList<GroceryItemDto>> SetArchivedAsync(IReadOnlyCollection<int> ids, bool archived);
+
+    /// <summary>
+    /// Deletes several items as one change.
+    /// </summary>
+    /// <param name="ids">The identifiers to remove. Unknown identifiers are ignored.</param>
+    /// <returns>A task whose result is how many items were removed.</returns>
+    /// <remarks>
+    /// One write and one history step, so removing a selection from the list is one undo rather than one per
+    /// row. Names are read before the removal so the log can still say what went.
+    /// </remarks>
+    Task<int> DeleteManyAsync(IReadOnlyCollection<int> ids);
+
+    /// <summary>
     /// Clears the browser stored catalogue and restores the demo data that ships with the app.
     /// </summary>
     /// <returns>A task that represents the asynchronous operation.</returns>

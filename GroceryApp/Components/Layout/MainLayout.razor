@@ -1,8 +1,18 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject IDemoScenarioService DemoScenario
+@inject IGroceryService GroceryService
+@inject ICatalogueHistoryService History
+@inject IPreferenceService Preferences
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
 
-<div class="app-shell">
+@* Registers the document level keyboard handler. Renders nothing. *@
+<KeyboardShortcuts ShortcutPressed="HandleShortcutAsync" />
+
+<div class="app-shell @(preferences.ReduceMotion ? "app-shell--no-motion" : null)">
     <aside class="app-sidebar">
-        <NavMenu />
+        <NavMenu LandingPage="@preferences.LandingPage" />
     </aside>
 
     <div class="app-main">
@@ -10,6 +20,33 @@
             <p class="app-topbar__note">Your changes are saved in this browser.</p>
 
             <div class="app-topbar__actions">
+                <button type="button"
+                        class="topbar-link topbar-link--button"
+                        @onclick="OpenPaletteAsync"
+                        aria-label="Open the command palette">
+                    <Icon Name="search" CssClass="icon-sm" />
+                    <span>Search</span>
+                    <kbd class="palette__key">Ctrl</kbd><kbd class="palette__key">K</kbd>
+                </button>
+
+                <button type="button"
+                        class="icon-button"
+                        @onclick="UndoAsync"
+                        disabled="@(!History.CanUndo)"
+                        title="@(History.NextUndoLabel is null ? "Nothing to undo" : $"Undo: {History.NextUndoLabel}")"
+                        aria-label="@(History.NextUndoLabel is null ? "Nothing to undo" : $"Undo {History.NextUndoLabel}")">
+                    <Icon Name="arrow-counterclockwise" />
+                </button>
+
+                <button type="button"
+                        class="icon-button"
+                        @onclick="RedoAsync"
+                        disabled="@(!History.CanRedo)"
+                        title="@(History.NextRedoLabel is null ? "Nothing to redo" : $"Redo: {History.NextRedoLabel}")"
+                        aria-label="@(History.NextRedoLabel is null ? "Nothing to redo" : $"Redo {History.NextRedoLabel}")">
+                    <Icon Name="arrow-up" />
+                </button>
+
                 <div class="app-topbar__links">
                     <a class="topbar-link" href="https://github.com/pattygcoding/Grocery-App-Blazor" target="_blank" rel="noopener">
                         <Icon Name="github" CssClass="icon-sm" />
@@ -40,3 +77,175 @@
         </footer>
     </div>
 </div>
+
+<CommandPalette Open="paletteOpen"
+                Items="paletteItems"
+                CanUndo="History.CanUndo"
+                CanRedo="History.CanRedo"
+                Closed="ClosePaletteAsync"
+                ActionInvoked="RunPaletteActionAsync" />
+
+<ShortcutHelp Open="helpOpen" Closed="CloseHelpAsync" />
+
+@code {
+    private bool paletteOpen;
+    private bool helpOpen;
+    private IReadOnlyList<GroceryItemDto> paletteItems = Array.Empty<GroceryItemDto>();
+    private UserPreferences preferences = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // The undo and redo controls in the top bar are enabled by whether there is anything to put back, and
+        // the history can move from any page, so the layout follows it rather than polling it.
+        History.Changed += OnHistoryChanged;
+
+        // The shell follows preferences too: reduced motion and the landing page are decided here, and the
+        // preferences page owns neither of them.
+        Preferences.Changed += OnPreferencesChanged;
+
+        await Preferences.LoadAsync();
+        preferences = Preferences.Current;
+
+        // The seeded catalogue ships without any history, which would leave the dashboard with nothing to
+        // plot. This prepares a demonstration history once per visit and declines immediately once the
+        // catalogue has a history of its own, so it is not a repeating cost.
+        try
+        {
+            await DemoScenario.TryApplyAsync(DateTime.UtcNow);
+        }
+        catch (Exception ex)
+        {
+            // Preparing demonstration data must never be able to stop the application from starting.
+            Console.WriteLine($"The demonstration history could not be prepared: {ex.Message}");
+        }
+    }
+
+    public void Dispose()
+    {
+        History.Changed -= OnHistoryChanged;
+        Preferences.Changed -= OnPreferencesChanged;
+    }
+
+    private void OnHistoryChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private void OnPreferencesChanged() => _ = InvokeAsync(() =>
+    {
+        preferences = Preferences.Current;
+        StateHasChanged();
+    });
+
+    /// <summary>
+    /// Carries out a shortcut pressed anywhere in the application.
+    /// </summary>
+    /// <param name="name">The shortcut's name, as reported by keyboard.js.</param>
+    private async Task HandleShortcutAsync(string name)
+    {
+        switch (name)
+        {
+            case "palette":
+                await OpenPaletteAsync();
+                break;
+
+            case "help":
+                helpOpen = true;
+                break;
+
+            case "escape":
+                paletteOpen = false;
+                helpOpen = false;
+                break;
+
+            case "undo":
+                await UndoAsync();
+                break;
+
+            case "redo":
+                await RedoAsync();
+                break;
+
+            case "search":
+                await FocusCatalogueSearchAsync();
+                break;
+        }
+    }
+
+    private async Task OpenPaletteAsync()
+    {
+        // The catalogue is read only when the palette is opened, so a visitor who never uses it never pays for it.
+        try
+        {
+            paletteItems = (await GroceryService.GetAllGroceriesAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            paletteItems = Array.Empty<GroceryItemDto>();
+            Console.WriteLine($"The palette could not read the catalogue: {ex.Message}");
+        }
+
+        helpOpen = false;
+        paletteOpen = true;
+    }
+
+    private Task ClosePaletteAsync()
+    {
+        paletteOpen = false;
+        return Task.CompletedTask;
+    }
+
+    private Task CloseHelpAsync()
+    {
+        helpOpen = false;
+        return Task.CompletedTask;
+    }
+
+    private async Task RunPaletteActionAsync(string key)
+    {
+        switch (key)
+        {
+            case "undo":
+                await UndoAsync();
+                break;
+
+            case "redo":
+                await RedoAsync();
+                break;
+
+            case "reset":
+                // The history is dropped first: its snapshots describe the catalogue that is about to be replaced,
+                // and undoing a demo reset would leave a catalogue whose movements went with the old log.
+                // Starting over is not the same kind of thing as an edit, so it is not offered as one.
+                await History.ClearAsync();
+                await GroceryService.ResetDemoDataAsync();
+                await DemoScenario.RebuildAsync(DateTime.UtcNow);
+                Navigation.NavigateTo("/");
+                break;
+        }
+    }
+
+    private async Task UndoAsync() => await History.UndoAsync();
+
+    private async Task RedoAsync() => await History.RedoAsync();
+
+    /// <summary>
+    /// Puts the cursor in the catalogue's search field, opening the catalogue first if the visitor is elsewhere.
+    /// </summary>
+    private async Task FocusCatalogueSearchAsync()
+    {
+        var path = new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/');
+
+        if (!path.EndsWith("groceries", StringComparison.OrdinalIgnoreCase))
+        {
+            Navigation.NavigateTo("/groceries");
+        }
+
+        try
+        {
+            // The module waits for the field to appear, which covers the case where the page is still rendering.
+            await JSRuntime.InvokeVoidAsync("groceryKeyboard.focusSearch");
+        }
+        catch (JSException)
+        {
+            // keyboard.js is unavailable, so there is no cursor to place.
+        }
+    }
+}

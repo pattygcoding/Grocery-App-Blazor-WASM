@@ -72,6 +72,42 @@ public class JsonGroceryStoreTests
     }
 
     [Fact]
+    public async Task SaveAsync_WritesEnumsByTheirNamesRatherThanTheirPositions()
+    {
+        // Stored payloads are read back by later builds, so an enum has to survive being reordered
+        // in source. Writing the name keeps the payload readable and immune to that.
+        var store = new RawStore();
+
+        await store.SaveAsync(new List<GroceryItem>
+        {
+            new() { Id = 1, Name = "Brie", Category = Category.Cheese, Unit = UnitOfMeasure.Kilogram, Price = 5.99m, CostToProduce = 3.50m }
+        });
+
+        Assert.Contains("\"category\":\"Cheese\"", store.Raw);
+        Assert.Contains("\"unit\":\"Kilogram\"", store.Raw);
+    }
+
+    [Fact]
+    public async Task LoadAsync_RestoresAnItemStoredBeforeTheUnitFieldExisted()
+    {
+        // The field did not exist in the first published build, so a payload without it has to load
+        // with the model's defaults rather than failing and making the app reseed over the visitor's
+        // own edits.
+        var store = new RawStore
+        {
+            Raw = """[{"id":2,"name":"Banana","category":"Fruit","price":0.59,"costToProduce":0.25,"stock":10}]"""
+        };
+
+        var item = Assert.Single(await store.LoadAsync());
+
+        Assert.Equal("Banana", item.Name);
+        Assert.Equal(UnitOfMeasure.Each, item.Unit);
+        Assert.Equal(5, item.ReorderPoint);
+        Assert.Equal(40m, item.TargetMarginPercent);
+        Assert.Empty(item.Tags);
+    }
+
+    [Fact]
     public async Task Repository_WhenStoredPayloadIsCorrupt_ReseedsTheCatalogue()
     {
         // Arrange

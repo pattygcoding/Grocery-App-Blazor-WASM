@@ -1,0 +1,58 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JSRuntime
+
+@* Registers the document level keyboard handler and reports the name of any shortcut that is pressed.
+   Renders nothing: this is a bridge between the keyboard and the layout, not a piece of interface.
+   The handler is removed when the layout goes away, so a shortcut never arrives at a component that has
+   been replaced. *@
+
+@code {
+    private DotNetObjectReference<KeyboardShortcuts>? reference;
+
+    /// <summary>Raised with the name of a shortcut that was pressed, for example "palette" or "undo".</summary>
+    [Parameter, EditorRequired]
+    public EventCallback<string> ShortcutPressed { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        reference = DotNetObjectReference.Create(this);
+
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("groceryKeyboard.register", reference);
+        }
+        catch (JSException)
+        {
+            // keyboard.js is unavailable, which means a browser still holding a cached index.html from before
+            // this feature. The application works; it just does not answer to the keyboard.
+        }
+    }
+
+    /// <summary>
+    /// Called from keyboard.js when a shortcut is pressed.
+    /// </summary>
+    /// <param name="name">The shortcut's name, as decided by the module.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    [JSInvokable]
+    public Task OnShortcut(string name) => ShortcutPressed.InvokeAsync(name);
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("groceryKeyboard.unregister");
+        }
+        catch (JSException)
+        {
+            // Nothing to remove.
+        }
+
+        reference?.Dispose();
+        reference = null;
+    }
+}

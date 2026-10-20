@@ -1,5 +1,12 @@
 @page "/groceries"
+@implements IDisposable
 @inject IGroceryService GroceryService
+@inject IInventoryQueryService QueryService
+@inject IInventoryAnalyticsService Analytics
+@inject IActivityService Activity
+@inject ICatalogueHistoryService History
+@inject IPreferenceService Preferences
+@inject NavigationManager Navigation
 
 <PageTitle>Groceries</PageTitle>
 
@@ -7,13 +14,17 @@
     <div class="page-header__text">
         <h1>Grocery items</h1>
         <p class="page-subtitle">
-            @if (groceries is null)
+            @if (catalogue is null)
             {
                 <text>Loading the catalogue from this browser…</text>
             }
+            else if (result is null)
+            {
+                <text>@catalogue.Count items in the catalogue.</text>
+            }
             else
             {
-                <text>@groceries.Count() items across @CategoryCount categories, ordered by category and name.</text>
+                <text>@ResultSummary</text>
             }
         </p>
     </div>
@@ -25,14 +36,14 @@
     </div>
 </header>
 
-@if (groceries is null)
+@if (catalogue is null)
 {
     <div class="loading-state">
         <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
         Loading catalogue…
     </div>
 }
-else if (!groceries.Any())
+else if (catalogue.Count == 0)
 {
     <div class="panel">
         <div class="empty-state">
@@ -48,102 +59,558 @@ else if (!groceries.Any())
 }
 else
 {
-    <div class="category-grid">
-        @foreach (var category in Enum.GetValues<Category>())
+    <InventoryFilterBar Filter="filter"
+                        Suppliers="SupplierFacets"
+                        FilterChanged="ApplyAsync" />
+
+    <div class="tag-cloud mb-4">
+        @foreach (var entry in categoryCounts)
         {
-            var itemsInCategory = groceries.Where(g => g.Category == category).ToList();
-
-            if (itemsInCategory.Count == 0)
-            {
-                continue;
-            }
-
-            <section class="panel">
-                <div class="panel__header">
-                    <h2 class="panel__title">
-                        <span class="chip @CategoryChip.ClassFor(category)">@category</span>
-                    </h2>
-                    <span class="text-subtle">
-                        @itemsInCategory.Count item@(itemsInCategory.Count == 1 ? string.Empty : "s") ·
-                        @itemsInCategory.Sum(i => i.Stock) in stock
-                    </span>
-                </div>
-
-                <div class="panel__body panel__body--flush">
-                    <div class="item-list">
-                        @foreach (var item in itemsInCategory)
-                        {
-                            <article class="item-row">
-                                <div class="item-row__main">
-                                    <div class="item-row__head">
-                                        <a class="item-row__name" href="/groceries/@item.Id">@item.Name</a>
-                                        <span class="item-row__id">#@item.Id</span>
-                                    </div>
-
-                                    <div class="item-row__figures">
-                                        <span>Price <span class="item-row__figure-value">@item.Price.ToString("C2")</span></span>
-                                        <span>Cost <span class="item-row__figure-value">@item.CostToProduce.ToString("C2")</span></span>
-                                        <span>
-                                            Margin
-                                            <span class="item-row__figure-value text-positive">@((item.Price - item.CostToProduce).ToString("C2"))</span>
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div class="item-row__aside">
-                                    <div class="item-row__stock">
-                                        <span class="item-row__label">Stock</span>
-                                        <div class="stepper">
-                                            <button type="button"
-                                                    class="stepper__button"
-                                                    @onclick="() => AdjustStock(item.Id, -1)"
-                                                    disabled="@(item.Stock <= 0)"
-                                                    aria-label="@("Decrease stock for " + item.Name)">
-                                                &minus;
-                                            </button>
-                                            <span class="stepper__value" aria-live="polite">@item.Stock</span>
-                                            <button type="button"
-                                                    class="stepper__button"
-                                                    @onclick="() => AdjustStock(item.Id, 1)"
-                                                    aria-label="@("Increase stock for " + item.Name)">
-                                                +
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div class="row-actions">
-                                        <a class="btn btn-ghost btn-sm" href="/groceries/@item.Id">View</a>
-                                        <a class="btn btn-ghost btn-sm" href="/groceries/edit/@item.Id">Edit</a>
-                                        <a class="btn btn-outline-danger btn-sm" href="/groceries/delete/@item.Id">Delete</a>
-                                    </div>
-                                </div>
-                            </article>
-                        }
-                    </div>
-                </div>
-            </section>
+            <span class="chip @CategoryChip.ClassFor(entry.Category)">
+                @entry.Category · @entry.Count
+            </span>
         }
     </div>
+
+    @if (result is null || result.Items.Count == 0)
+    {
+        <div class="panel">
+            <div class="empty-state">
+                <Icon Name="funnel-fill" CssClass="empty-state__icon" Size="24" />
+                <h2>Nothing matches those filters</h2>
+                <p>
+                    The catalogue still holds @catalogue.Count items, but none of them match what is
+                    currently selected.
+                </p>
+                <div class="empty-state__actions">
+                    <button type="button" class="btn btn-secondary" @onclick="ClearFiltersAsync">
+                        <Icon Name="x-lg" /> Clear the filters
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="bulk-bar">
+            <label class="bulk-bar__select">
+                <input type="checkbox"
+                       checked="@AllShownSelected"
+                       @onchange="ToggleAllShown"
+                       aria-label="Select every item shown" />
+                <span>
+                    @if (selection.Count == 0)
+                    {
+                        <text>@result.Items.Count shown</text>
+                    }
+                    else
+                    {
+                        <text>@selection.Count of @result.Items.Count selected</text>
+                    }
+                </span>
+            </label>
+
+            @if (selection.Count > 0)
+            {
+                <div class="bulk-bar__actions">
+                    <button type="button" class="btn btn-secondary btn-sm" @onclick="() => SetArchivedAsync(true)">
+                        <Icon Name="archive" /> Archive
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" @onclick="() => SetArchivedAsync(false)">
+                        <Icon Name="arrow-counterclockwise" /> Restore
+                    </button>
+                    <button type="button" class="btn btn-outline-danger btn-sm" @onclick="AskToDeleteSelection">
+                        <Icon Name="trash3" /> Delete
+                    </button>
+                    <button type="button" class="btn btn-ghost btn-sm" @onclick="ClearSelection">
+                        <Icon Name="x-lg" /> Clear
+                    </button>
+                </div>
+            }
+        </div>
+
+        @if (bulkStatus is not null)
+        {
+            <div class="alert @(bulkStatusIsError ? "alert--danger" : "alert--positive")" role="status">
+                <p class="alert__title">@bulkStatus</p>
+            </div>
+        }
+
+        @if (isConfirmingDelete)
+        {
+            <div class="panel panel--danger panel--narrow" role="alertdialog" aria-label="Confirm deleting the selection">
+                <div class="panel__header">
+                    <h2 class="panel__title">
+                        <Icon Name="exclamation-triangle" /> Delete @selection.Count
+                        @(selection.Count == 1 ? "item" : "items")?
+                    </h2>
+                </div>
+
+                <div class="panel__body">
+                    <p>
+                        Deleting removes the @(selection.Count == 1 ? "item" : "items") from the catalogue.
+                        Archiving instead keeps @(selection.Count == 1 ? "it" : "them") and the recorded
+                        history, and either way the change is one step that can be undone.
+                    </p>
+
+                    <div class="row-actions mt-3">
+                        <button type="button" class="btn btn-danger" @onclick="DeleteSelectionAsync">
+                            <Icon Name="trash3" /> Delete @selection.Count @(selection.Count == 1 ? "item" : "items")
+                        </button>
+                        <button type="button" class="btn btn-secondary" @onclick="CancelDeleteSelection">
+                            Keep @(selection.Count == 1 ? "it" : "them")
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <section class="panel">
+            <div class="panel__body panel__body--flush">
+                <div class="item-list @(preferences.Density == TableDensity.Compact ? "item-list--compact" : null)">
+                    @foreach (var item in result.Items)
+                    {
+                        <article class="item-row @(item.IsArchived ? "item-row--archived" : null)">
+                            <div class="item-row__main">
+                                <div class="item-row__head">
+                                    <input type="checkbox"
+                                           class="row-pick"
+                                           checked="@selection.Contains(item.Id)"
+                                           @onchange="() => ToggleSelection(item.Id)"
+                                           aria-label="@($"Select {item.Name}")" />
+                                    <a class="item-row__name" href="/groceries/@item.Id">@item.Name</a>
+                                    <span class="chip @CategoryChip.ClassFor(item.Category)">@item.Category</span>
+                                    <span class="chip @StatusChip(StatusOf(item))">@StatusLabel(StatusOf(item))</span>
+                                    @if (item.IsArchived)
+                                    {
+                                        <span class="chip chip--neutral"
+                                              title="Kept out of the catalogue and its figures until it is restored">
+                                            Archived
+                                        </span>
+                                    }
+                                    @if (BandABadgeIsMeaningful && BandOf(item) == AbcClass.A)
+                                    {
+                                        <span class="chip chip--brand"
+                                              title="Carries a large share of the value held">
+                                            Band A
+                                        </span>
+                                    }
+                                    <span class="item-row__id">@item.Sku</span>
+                                </div>
+
+                                <div class="item-row__figures">
+                                    <span>Price <span class="item-row__figure-value">@item.Price.ToString("C2")</span></span>
+                                    <span>Cost <span class="item-row__figure-value">@item.CostToProduce.ToString("C2")</span></span>
+                                    <span>
+                                        Margin
+                                        <span class="item-row__figure-value @(item.IsBelowTargetMargin ? "text-caution" : "text-positive")">
+                                            @item.Margin.ToString("C2") (@item.MarginPercent.ToString("0.#")%)
+                                        </span>
+                                    </span>
+                                    <span>Held <span class="item-row__figure-value">@item.StockRetailValue.ToString("C0")</span></span>
+                                    @if (UnitsPerDay(item) is { } rate)
+                                    {
+                                        <span>
+                                            Sells
+                                            <span class="item-row__figure-value">@rate.ToString("0.##")</span> a day
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="item-row__aside">
+                                <div class="item-row__stock">
+                                    <span class="item-row__label">Stock</span>
+                                    <div class="stepper">
+                                        <button type="button"
+                                                class="stepper__button"
+                                                @onclick="() => AdjustStockAsync(item.Id, -1)"
+                                                disabled="@(item.Stock <= 0)"
+                                                aria-label="@($"Decrease stock for {item.Name}")">
+                                            &minus;
+                                        </button>
+                                        <span class="stepper__value" aria-live="polite">@item.Stock</span>
+                                        <button type="button"
+                                                class="stepper__button"
+                                                @onclick="() => AdjustStockAsync(item.Id, 1)"
+                                                aria-label="@($"Increase stock for {item.Name}")">
+                                            +
+                                        </button>
+                                    </div>
+                                    <span class="text-subtle">/ @item.ReorderPoint</span>
+                                </div>
+
+                                <div class="row-actions">
+                                    <a class="btn btn-ghost btn-sm" href="/groceries/@item.Id">View</a>
+                                    <a class="btn btn-ghost btn-sm" href="/groceries/edit/@item.Id">Edit</a>
+                                    @if (item.IsArchived)
+                                    {
+                                        <button type="button"
+                                                class="btn btn-ghost btn-sm"
+                                                @onclick="() => SetArchivedForAsync(item.Id, false)">
+                                            Restore
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button"
+                                                class="btn btn-ghost btn-sm"
+                                                @onclick="() => SetArchivedForAsync(item.Id, true)">
+                                            Archive
+                                        </button>
+                                    }
+                                    @if (preferences.ConfirmBeforeDelete)
+                                    {
+                                        <a class="btn btn-outline-danger btn-sm" href="/groceries/delete/@item.Id">Delete</a>
+                                    }
+                                    else
+                                    {
+                                        <button type="button"
+                                                class="btn btn-outline-danger btn-sm"
+                                                @onclick="() => DeleteOneAsync(item)">
+                                            Delete
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </article>
+                    }
+                </div>
+            </div>
+        </section>
+    }
 }
 
 @code {
-    private IEnumerable<GroceryItemDto>? groceries;
-
-    private int CategoryCount => groceries?.Select(g => g.Category).Distinct().Count() ?? 0;
+    private readonly HashSet<int> selection = new();
+    private InventoryFilter filter = new();
+    private List<GroceryItemDto>? catalogue;
+    private InventoryQueryResult? result;
+    private List<(Category Category, int Count)> categoryCounts = new();
+    private Dictionary<int, double> movesPerDay = new();
+    private UserPreferences preferences = new();
+    private string? bulkStatus;
+    private bool bulkStatusIsError;
+    private bool isConfirmingDelete;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadGroceries();
+        // Preferences are read before the filter is, because one of them decides the filter's starting point.
+        await Preferences.LoadAsync();
+        preferences = Preferences.Current;
+
+        // The filter travels in the address bar, so a narrowed catalogue can be bookmarked, shared and
+        // linked to from anywhere else in the app.
+        var query = new Uri(Navigation.Uri).Query;
+        filter = InventoryFilterQuery.Parse(query);
+
+        // A stored preference fills in the default and nothing more: an address that carries a filter is taken
+        // exactly as written, or a link would mean something different for each visitor who opened it.
+        if (string.IsNullOrEmpty(query) && preferences.ShowArchived)
+        {
+            filter.IncludeArchived = true;
+        }
+
+        // A change can be undone from the top bar or from the keyboard while this page is the one showing the
+        // catalogue, so the list reloads whenever the history moves rather than only when this page changes it.
+        History.Changed += OnHistoryChanged;
+
+        await RefreshAsync();
     }
 
-    private async Task LoadGroceries()
+    public void Dispose()
     {
-        groceries = await GroceryService.GetAllGroceriesAsync();
+        History.Changed -= OnHistoryChanged;
     }
 
-    private async Task AdjustStock(int id, int adjustment)
+    private void OnHistoryChanged() => _ = InvokeAsync(async () =>
+    {
+        try
+        {
+            await RefreshAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // A reload that fails leaves the list as it was rather than emptying the page.
+            Console.WriteLine($"The catalogue could not be reloaded after an undo: {ex.Message}");
+        }
+    });
+
+    /// <summary>
+    /// Re-reads the catalogue and runs the filter over it.
+    /// </summary>
+    /// <remarks>
+    /// Everything on the page is derived from one query result, so a change to the filter, a stock
+    /// adjustment and a reload all take the same path and cannot disagree with each other.
+    /// </remarks>
+    private async Task RefreshAsync()
+    {
+        catalogue = (await GroceryService.GetAllGroceriesAsync()).ToList();
+
+        var now = DateTime.UtcNow;
+        var entries = await Activity.GetBetweenAsync(now.AddDays(-30), now);
+
+        result = QueryService.Query(catalogue, filter);
+
+        // The per category counts are of the whole catalogue rather than of the filtered list, so they
+        // keep telling the visitor what else is there while they narrow things down.
+        categoryCounts = catalogue
+            .GroupBy(item => item.Category)
+            .Select(group => (Category: group.Key, Count: group.Count()))
+            .OrderBy(entry => entry.Category)
+            .ToList();
+
+        movesPerDay = Analytics
+            .CalculateVelocity(catalogue, entries, now, windowDays: 30)
+            .Where(stat => stat.UnitsPerDay > 0)
+            .ToDictionary(stat => stat.ItemId, stat => stat.UnitsPerDay);
+    }
+
+    /// <summary>
+    /// Applies a filter change from the filter bar: re-query, then put the filter in the address bar.
+    /// </summary>
+    private async Task ApplyAsync(InventoryFilter changed)
+    {
+        filter = changed;
+
+        await RefreshAsync();
+        PushFilterToAddressBar();
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        filter = new InventoryFilter();
+
+        await RefreshAsync();
+        PushFilterToAddressBar();
+    }
+
+    /// <summary>
+    /// Writes the filter into the address bar, replacing the current entry rather than adding one.
+    /// </summary>
+    /// <remarks>
+    /// A history entry per filter change would make the back button useless, and the address only needs to
+    /// carry the filter so that the link can be copied or bookmarked.
+    /// </remarks>
+    private void PushFilterToAddressBar()
+    {
+        var query = InventoryFilterQuery.ToQueryString(filter);
+        var target = string.IsNullOrEmpty(query) ? "/groceries" : $"/groceries?{query}";
+
+        if (new Uri(Navigation.Uri).PathAndQuery != target)
+        {
+            Navigation.NavigateTo(target, replace: true);
+        }
+    }
+
+    /// <summary>True when every item on screen is selected, which is what the bar's checkbox shows.</summary>
+    private bool AllShownSelected =>
+        result is not null && result.Items.Count > 0 && result.Items.All(item => selection.Contains(item.Id));
+
+    private void ToggleSelection(int id)
+    {
+        // Remove returns false when the row was not selected, which is the add case.
+        if (!selection.Remove(id))
+        {
+            selection.Add(id);
+        }
+
+        bulkStatus = null;
+        isConfirmingDelete = false;
+    }
+
+    private void ToggleAllShown()
+    {
+        if (result is null)
+        {
+            return;
+        }
+
+        // The checkbox means "everything shown", so a press when all of it is already selected clears rather
+        // than toggling row by row: after the first press everything shown is selected, after the second
+        // nothing is.
+        var wasAllSelected = AllShownSelected;
+
+        selection.Clear();
+
+        if (!wasAllSelected)
+        {
+            foreach (var item in result.Items)
+            {
+                selection.Add(item.Id);
+            }
+        }
+
+        bulkStatus = null;
+        isConfirmingDelete = false;
+    }
+
+    private void ClearSelection()
+    {
+        selection.Clear();
+        isConfirmingDelete = false;
+    }
+
+    private Task SetArchivedForAsync(int id, bool archived) => SetArchivedAsync(new[] { id }, archived);
+
+    private Task SetArchivedAsync(bool archived) => SetArchivedAsync(selection.ToList(), archived);
+
+    private async Task SetArchivedAsync(IReadOnlyCollection<int> ids, bool archived)
+    {
+        if (ids.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var changed = await GroceryService.SetArchivedAsync(ids, archived);
+            var count = changed.Count;
+            var them = count == 1 ? "it" : "them";
+
+            bulkStatusIsError = false;
+            bulkStatus = count == 0
+                ? "Nothing changed: those items were already in that state."
+                : archived
+                    ? $"Archived {count} {(count == 1 ? "item" : "items")}. One undo puts {them} back."
+                    : $"Restored {count} {(count == 1 ? "item" : "items")} to the catalogue.";
+        }
+        catch (Exception ex)
+        {
+            bulkStatusIsError = true;
+            bulkStatus = "The catalogue could not be written to browser storage. Please try again.";
+            Console.WriteLine($"Error changing the archive state: {ex.Message}");
+        }
+
+        // The selection goes, because the rows it referred to may no longer be on screen.
+        selection.Clear();
+        isConfirmingDelete = false;
+
+        await RefreshAsync();
+    }
+
+    private void AskToDeleteSelection()
+    {
+        if (selection.Count > 0)
+        {
+            isConfirmingDelete = true;
+        }
+    }
+
+    private void CancelDeleteSelection() => isConfirmingDelete = false;
+
+    private async Task DeleteSelectionAsync()
+    {
+        var ids = selection.ToList();
+        isConfirmingDelete = false;
+
+        await DeleteAsync(ids);
+    }
+
+    private Task DeleteOneAsync(GroceryItemDto item) => DeleteAsync(new[] { item.Id });
+
+    private async Task DeleteAsync(IReadOnlyCollection<int> ids)
+    {
+        if (ids.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var removed = await GroceryService.DeleteManyAsync(ids);
+
+            bulkStatusIsError = false;
+            bulkStatus = removed == 0
+                ? "Nothing was deleted."
+                : $"Deleted {removed} {(removed == 1 ? "item" : "items")}. One undo puts {(removed == 1 ? "it" : "them")} back.";
+        }
+        catch (Exception ex)
+        {
+            bulkStatusIsError = true;
+            bulkStatus = "The catalogue could not be written to browser storage. Please try again.";
+            Console.WriteLine($"Error deleting from the catalogue: {ex.Message}");
+        }
+
+        selection.Clear();
+        await RefreshAsync();
+    }
+
+    private async Task AdjustStockAsync(int id, int adjustment)
     {
         await GroceryService.AdjustStockAsync(id, adjustment);
-        await LoadGroceries();
+        await RefreshAsync();
     }
+
+    private string ResultSummary
+    {
+        get
+        {
+            if (result is null)
+            {
+                return string.Empty;
+            }
+
+            var total = catalogue?.Count ?? 0;
+            var parts = new List<string>
+            {
+                result.Items.Count == total
+                    ? $"{total} items"
+                    : $"{result.Items.Count} of {total} items",
+                $"{result.FilteredRetailValue.ToString("C0")} at retail"
+            };
+
+            if (result.ArchivedExcluded > 0 && !filter.IncludeArchived)
+            {
+                parts.Add($"{result.ArchivedExcluded} archived left out");
+            }
+
+            return string.Join(" · ", parts);
+        }
+    }
+
+    private double? UnitsPerDay(GroceryItemDto item) =>
+        movesPerDay.TryGetValue(item.Id, out var rate) ? rate : null;
+
+    /// <summary>
+    /// The suppliers the filter bar can offer, taken from the catalogue rather than from the filtered
+    /// result so the list does not shrink as the visitor narrows things down.
+    /// </summary>
+    private IReadOnlyList<string> SupplierFacets => result?.Suppliers ?? new List<string>();
+
+    private StockStatus StatusOf(GroceryItemDto item) => Analytics.Classify(item);
+
+    private AbcClass BandOf(GroceryItemDto item) =>
+        result is not null && result.AbcBands.TryGetValue(item.Id, out var band) ? band : AbcClass.C;
+
+    /// <summary>
+    /// True when band A is a small enough share of the catalogue for the badge to say something.
+    /// </summary>
+    /// <remarks>
+    /// ABC analysis only concentrates when the value is unevenly spread. A flat catalogue can put most of
+    /// its lines in band A, and badging two thirds of the list carries no information, so the badge is
+    /// only shown when band A is a minority. The band is still available as a filter either way.
+    /// </remarks>
+    private bool BandABadgeIsMeaningful =>
+        result is not null &&
+        catalogue is not null &&
+        result.AbcBands.Count(pair => pair.Value == AbcClass.A) <= Math.Max(3, catalogue.Count / 5);
+
+    private static string StatusChip(StockStatus status) => status switch
+    {
+        StockStatus.OutOfStock => "chip--danger",
+        StockStatus.Critical or StockStatus.Low => "chip--caution",
+        StockStatus.Overstock => "chip--neutral",
+        _ => "chip--positive"
+    };
+
+    private static string StatusLabel(StockStatus status) => status switch
+    {
+        StockStatus.OutOfStock => "Out of stock",
+        StockStatus.Critical => "Nearly out",
+        StockStatus.Low => "At the threshold",
+        StockStatus.Overstock => "Overstocked",
+        _ => "Covered"
+    };
 }

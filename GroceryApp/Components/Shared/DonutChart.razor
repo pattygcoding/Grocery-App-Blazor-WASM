@@ -1,0 +1,107 @@
+@using System.Globalization
+
+@* A ring chart drawn as SVG.
+   No charting library: the arcs are two stroke properties on one circle each, using the classic
+   trick where a radius of 15.9155 makes the circumference exactly 100, so a share in percent is
+   also its dash length. Colour comes from the class the caller passes, which is a modifier from
+   the design system, so the ring follows the palette and both themes without a colour of its own.
+   The figure carries an aria-label describing the whole breakdown, and the legend below spells
+   the figures out in text, so nothing here is only available by looking at the shape. *@
+<figure class="chart">
+    <div class="chart__plot">
+        <svg class="donut" viewBox="0 0 42 42" role="img" aria-label="@AccessibleSummary">
+            <circle class="donut__track" cx="21" cy="21" r="15.9155" fill="none" />
+            @foreach (var arc in arcs)
+            {
+                <circle class="donut__segment @arc.Segment.CssClass"
+                        cx="21"
+                        cy="21"
+                        r="15.9155"
+                        fill="none"
+                        stroke="currentColor"
+                        style="stroke-dasharray:@Number(arc.Dash) @Number(100 - arc.Dash); stroke-dashoffset:@Number(arc.Offset)" />
+            }
+        </svg>
+
+        @if (!string.IsNullOrEmpty(CenterValue))
+        {
+            <div class="chart__center">
+                <span class="chart__center-value tnum">@CenterValue</span>
+                @if (!string.IsNullOrEmpty(CenterLabel))
+                {
+                    <span class="chart__center-label">@CenterLabel</span>
+                }
+            </div>
+        }
+    </div>
+
+    <figcaption class="chart__legend">
+        @foreach (var arc in arcs)
+        {
+            <span class="chart__legend-item">
+                <span class="chart__swatch @arc.Segment.CssClass" aria-hidden="true"></span>
+                <span class="chart__legend-label">@arc.Segment.Label</span>
+                <span class="chart__legend-value tnum">@arc.Segment.ValueLabel</span>
+            </span>
+        }
+    </figcaption>
+</figure>
+
+@code {
+    /// <summary>
+    /// One slice of the ring.
+    /// </summary>
+    /// <param name="Label">Name shown in the legend.</param>
+    /// <param name="ValueLabel">The figure as formatted for display, for example "$1,204".</param>
+    /// <param name="Value">The raw figure, used to work out the slice's share.</param>
+    /// <param name="CssClass">Design system class supplying the slice's colour, for example "chip--fruit".</param>
+    public sealed record DonutSegment(string Label, string ValueLabel, decimal Value, string CssClass);
+
+    /// <summary>The slices, widest first if the caller has ordered them that way.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<DonutSegment> Segments { get; set; } = Array.Empty<DonutSegment>();
+
+    /// <summary>Figure shown in the middle of the ring.</summary>
+    [Parameter]
+    public string? CenterValue { get; set; }
+
+    /// <summary>Caption under the figure in the middle of the ring.</summary>
+    [Parameter]
+    public string? CenterLabel { get; set; }
+
+    /// <summary>What the ring shows, used as the start of its accessible description.</summary>
+    [Parameter]
+    public string AccessibleLabel { get; set; } = "Breakdown";
+
+    private sealed record Arc(DonutSegment Segment, double Dash, double Offset);
+
+    private List<Arc> arcs = new();
+
+    private string AccessibleSummary =>
+        $"{AccessibleLabel}: " +
+        string.Join(", ", arcs.Where(arc => arc.Dash > 0).Select(arc => $"{arc.Segment.Label} {arc.Segment.ValueLabel}"));
+
+    protected override void OnParametersSet()
+    {
+        arcs = new List<Arc>();
+
+        var total = Segments.Sum(segment => segment.Value);
+        var cumulative = 0d;
+
+        foreach (var segment in Segments)
+        {
+            var dash = total == 0m ? 0d : (double)(segment.Value / total) * 100d;
+
+            // The quarter turn puts the first slice's start at twelve o'clock rather than three,
+            // which is where a reader expects a share chart to begin.
+            arcs.Add(new Arc(segment, dash, 25d - cumulative));
+            cumulative += dash;
+        }
+    }
+
+    /// <summary>
+    /// Formats a number for an SVG attribute. Always invariant: an SVG in a locale that writes decimals
+    /// with a comma is an SVG that does not render.
+    /// </summary>
+    private static string Number(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+}

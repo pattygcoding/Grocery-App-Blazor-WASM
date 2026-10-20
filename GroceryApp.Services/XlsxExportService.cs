@@ -13,6 +13,20 @@ namespace GroceryApp.Services;
 /// </remarks>
 public class XlsxExportService : IExcelExportService
 {
+    private readonly IInventoryAnalyticsService _analytics;
+
+    /// <summary>
+    /// Initializes a new instance of the XlsxExportService class.
+    /// </summary>
+    /// <param name="analytics">
+    /// The analysis the workbook's later sheets are built from. Shared with the pages rather than
+    /// reimplemented here, so a band or a stock position in the file matches the one on screen.
+    /// </param>
+    public XlsxExportService(IInventoryAnalyticsService analytics)
+    {
+        _analytics = analytics ?? throw new ArgumentNullException(nameof(analytics));
+    }
+
     /// <inheritdoc />
     public Task<byte[]> GenerateReportExcelAsync(IEnumerable<GroceryItemDto> groceries)
     {
@@ -35,6 +49,15 @@ public class XlsxExportService : IExcelExportService
 
         // Sheet 5: Price Range Analysis
         CreatePriceRangeAnalysisSheet(workbook, groceryList);
+
+        // Sheet 6: ABC Analysis
+        CreateAbcAnalysisSheet(workbook, groceryList);
+
+        // Sheet 7: Supplier Summary
+        CreateSupplierSummarySheet(workbook, groceryList);
+
+        // Sheet 8: Items to Deal With
+        CreateItemsToDealWithSheet(workbook, groceryList);
 
         return Task.FromResult(workbook.Build());
     }
@@ -221,5 +244,178 @@ public class XlsxExportService : IExcelExportService
             worksheet.SetNumber(row, 4, range.Items.Average(g => g.Price - g.CostToProduce), XlsxStyle.Currency);
             worksheet.SetNumber(row, 5, range.Items.Average(g => (g.Price - g.CostToProduce) / g.Price), XlsxStyle.Percent);
         }
+    }
+
+    /// <summary>
+    /// Creates the Supplier Summary worksheet: what is bought from whom, and what it is worth.
+    /// </summary>
+    /// <param name="workbook">The workbook to add the worksheet to.</param>
+    /// <param name="groceries">The catalogue to summarise.</param>
+    private static void CreateSupplierSummarySheet(SimpleXlsxWriter workbook, List<GroceryItemDto> groceries)
+    {
+        var worksheet = workbook.AddSheet("Supplier Summary");
+
+        worksheet.SetText(1, 1, "Supplier", XlsxStyle.HeaderBlue);
+        worksheet.SetText(1, 2, "Items", XlsxStyle.HeaderBlue);
+        worksheet.SetText(1, 3, "Units Held", XlsxStyle.HeaderBlue);
+        worksheet.SetText(1, 4, "Value at Retail", XlsxStyle.HeaderBlue);
+        worksheet.SetText(1, 5, "Value at Cost", XlsxStyle.HeaderBlue);
+        worksheet.SetText(1, 6, "Average Margin", XlsxStyle.HeaderBlue);
+        worksheet.SetText(1, 7, "Needs Ordering", XlsxStyle.HeaderBlue);
+
+        // Grouped by name with the most valuable supplier first, because that is the order a buyer would
+        // work down: the lines worth most are the ones worth the phone call.
+        var suppliers = groceries
+            .GroupBy(item => string.IsNullOrWhiteSpace(item.Supplier) ? "(no supplier)" : item.Supplier)
+            .Select(group => new { Name = group.Key, Items = group.ToList() })
+            .OrderByDescending(group => group.Items.Sum(item => item.StockRetailValue))
+            .ToList();
+
+        for (var index = 0; index < suppliers.Count; index++)
+        {
+            var supplier = suppliers[index];
+            var row = index + 2;
+            var retail = supplier.Items.Sum(item => item.StockRetailValue);
+            var cost = supplier.Items.Sum(item => item.CostToProduce * item.Stock);
+
+            worksheet.SetText(row, 1, supplier.Name);
+            worksheet.SetNumber(row, 2, supplier.Items.Count);
+            worksheet.SetNumber(row, 3, supplier.Items.Sum(item => item.Stock));
+            worksheet.SetNumber(row, 4, retail, XlsxStyle.Currency);
+            worksheet.SetNumber(row, 5, cost, XlsxStyle.Currency);
+            worksheet.SetNumber(row, 6, retail == 0m ? 0m : (retail - cost) / retail, XlsxStyle.Percent);
+            worksheet.SetNumber(
+                row,
+                7,
+                supplier.Items.Count(item => item.Stock <= item.ReorderPoint),
+                XlsxStyle.YellowFill);
+        }
+    }
+
+    /// <summary>
+    /// Creates the ABC Analysis worksheet: how the value held is concentrated across the catalogue.
+    /// </summary>
+    /// <param name="workbook">The workbook to add the worksheet to.</param>
+    /// <param name="groceries">The catalogue to analyse.</param>
+    private void CreateAbcAnalysisSheet(SimpleXlsxWriter workbook, List<GroceryItemDto> groceries)
+    {
+        var worksheet = workbook.AddSheet("ABC Analysis");
+        var analysis = _analytics.AnalyseAbc(groceries);
+
+        worksheet.SetText(1, 1, "Band", XlsxStyle.HeaderGreen);
+        worksheet.SetText(1, 2, "Items", XlsxStyle.HeaderGreen);
+        worksheet.SetText(1, 3, "Units Held", XlsxStyle.HeaderGreen);
+        worksheet.SetText(1, 4, "Value at Retail", XlsxStyle.HeaderGreen);
+        worksheet.SetText(1, 5, "Potential Profit", XlsxStyle.HeaderGreen);
+        worksheet.SetText(1, 6, "Share of Value", XlsxStyle.HeaderGreen);
+        worksheet.SetText(1, 7, "Running Share", XlsxStyle.HeaderGreen);
+
+        for (var index = 0; index < analysis.Classes.Count; index++)
+        {
+            var band = analysis.Classes[index];
+            var row = index + 2;
+
+            worksheet.SetText(row, 1, $"Band {band.Class}");
+            worksheet.SetNumber(row, 2, band.ItemCount);
+            worksheet.SetNumber(row, 3, band.TotalStock);
+            worksheet.SetNumber(row, 4, band.StockRetailValue, XlsxStyle.Currency);
+            worksheet.SetNumber(row, 5, band.PotentialProfit, XlsxStyle.Currency);
+            worksheet.SetNumber(row, 6, band.ShareOfValue / 100m, XlsxStyle.Percent);
+            worksheet.SetNumber(row, 7, band.CumulativeShare / 100m, XlsxStyle.Percent);
+        }
+
+        var noteRow = analysis.Classes.Count + 3;
+
+        worksheet.SetText(noteRow, 1, $"{analysis.ItemCountInClassA} of {groceries.Count} items carry {analysis.Concentration:0.#}% of the value held.", XlsxStyle.BoldLabel);
+        worksheet.SetText(noteRow + 1, 1, "Bands are worked out from the value of the stock on hand, not from what has sold.", XlsxStyle.Italic);
+    }
+
+    /// <summary>
+    /// Creates the Items to Deal With worksheet: the lines that need a decision rather than a summary.
+    /// </summary>
+    /// <param name="workbook">The workbook to add the worksheet to.</param>
+    /// <param name="groceries">The catalogue to read the problems out of.</param>
+    /// <remarks>
+    /// Every other sheet describes the catalogue. This one lists what somebody would have to do something
+    /// about, with the reason written next to each line, which is the sheet a shopkeeper would actually use.
+    /// </remarks>
+    private void CreateItemsToDealWithSheet(SimpleXlsxWriter workbook, List<GroceryItemDto> groceries)
+    {
+        var worksheet = workbook.AddSheet("Items to Deal With");
+
+        worksheet.SetText(1, 1, "Item", XlsxStyle.HeaderCoral);
+        worksheet.SetText(1, 2, "Code", XlsxStyle.HeaderCoral);
+        worksheet.SetText(1, 3, "What to do about it", XlsxStyle.HeaderCoral);
+        worksheet.SetText(1, 4, "Stock", XlsxStyle.HeaderCoral);
+        worksheet.SetText(1, 5, "Reorder Point", XlsxStyle.HeaderCoral);
+
+        var flagged = groceries
+            .Select(item => new { Item = item, Reason = Reason(item) })
+            .Where(entry => entry.Reason is not null)
+            .OrderBy(entry => entry.Item.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (flagged.Count == 0)
+        {
+            worksheet.SetText(2, 1, "Nothing needs attention in this catalogue.", XlsxStyle.Italic);
+            return;
+        }
+
+        for (var index = 0; index < flagged.Count; index++)
+        {
+            var entry = flagged[index];
+            var row = index + 2;
+
+            worksheet.SetText(row, 1, entry.Item.Name);
+            worksheet.SetText(row, 2, entry.Item.Sku);
+            worksheet.SetText(row, 3, entry.Reason ?? string.Empty);
+            worksheet.SetNumber(row, 4, entry.Item.Stock);
+            worksheet.SetNumber(row, 5, entry.Item.ReorderPoint);
+        }
+    }
+
+    /// <summary>
+    /// Decides what, if anything, is wrong with one item.
+    /// </summary>
+    /// <param name="item">The item to judge.</param>
+    /// <returns>The reason to act on it, or null when there is nothing to say.</returns>
+    /// <remarks>
+    /// One reason per item and the order is deliberate: the first thing a person would do about the line is
+    /// the one worth writing down, and an item with three problems does not need three rows.
+    /// </remarks>
+    private string? Reason(GroceryItemDto item)
+    {
+        // An archived item is out of the catalogue on purpose, so nothing about it is a problem.
+        if (item.IsArchived)
+        {
+            return null;
+        }
+
+        if (_analytics.Classify(item) == StockStatus.OutOfStock)
+        {
+            return "Out of stock: order it, or take it off the list";
+        }
+
+        if (item.Stock <= item.ReorderPoint)
+        {
+            return "At or below its reorder point";
+        }
+
+        if (item.IsBelowTargetMargin)
+        {
+            return "Margin is below the target set for this item";
+        }
+
+        if (string.IsNullOrWhiteSpace(item.Supplier))
+        {
+            return "No supplier recorded, so it cannot be reordered";
+        }
+
+        if (_analytics.Classify(item) == StockStatus.Overstock && item.StockRetailValue > 250m)
+        {
+            return "More held than it is worth holding";
+        }
+
+        return null;
     }
 }

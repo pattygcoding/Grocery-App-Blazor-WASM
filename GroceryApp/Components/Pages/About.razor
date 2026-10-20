@@ -1,0 +1,292 @@
+@page "/about"
+@inject ISystemDiagnosticsService Diagnostics
+@inject NavigationManager Navigation
+
+<PageTitle>About and diagnostics</PageTitle>
+
+@* What the application is, and what it has stored in this browser.
+
+   A client only application keeps everything on the visitor's own machine, so the honest answer to "where is
+   my data?" belongs on a page. The figures below are read from the same services the rest of the app uses,
+   so this screen cannot describe a state the app is not in. *@
+
+<header class="page-header">
+    <div class="page-header__text">
+        <h1>About and diagnostics</h1>
+        <p class="page-subtitle">
+            What this is, how it is built, and what it has put in this browser.
+        </p>
+    </div>
+</header>
+
+@if (report is null)
+{
+    <div class="loading-state">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Reading the browser storage…
+    </div>
+}
+else
+{
+    <section class="panel">
+        <div class="panel__header">
+            <h2 class="panel__title"><Icon Name="info-circle" /> What this is</h2>
+        </div>
+
+        <div class="panel__body">
+            <p>
+                A grocery inventory application built as a Blazor WebAssembly client. There is no server and no
+                database: the catalogue, the activity log and your preferences are held in this browser's
+                <code>localStorage</code>, under keys prefixed <code>groceryapp.</code> so they can never
+                collide with another site on the same origin.
+            </p>
+
+            <p>
+                The analysis is a pure calculation over the catalogue and the recorded movements, the charts
+                are hand written SVG, and the Excel workbook is written as Open XML in C# — no charting
+                library, no jQuery, no spreadsheet library, and no CDN request at runtime.
+            </p>
+
+            <div class="row-actions">
+                <a class="btn btn-secondary" href="https://github.com/pattygcoding/Grocery-App-Blazor-WASM" target="_blank" rel="noopener">
+                    <Icon Name="code-slash" /> Source
+                </a>
+                <a class="btn btn-ghost" href="https://pattygcoding.com" target="_blank" rel="noopener">
+                    <Icon Name="box-arrow-up-right" /> pattygcoding.com
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel__header">
+            <h2 class="panel__title"><Icon Name="database" /> What is stored</h2>
+        </div>
+
+        <div class="panel__body panel__body--flush">
+            <div class="table-responsive">
+                <table class="table table--tight">
+                    <thead>
+                        <tr>
+                            <th scope="col">Key</th>
+                            <th scope="col">What it holds</th>
+                            <th scope="col" class="text-end">Size</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (report.Storage.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="3">Nothing is stored yet.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var footprint in report.Storage)
+                            {
+                                <tr>
+                                    <td><code>@footprint.Key</code></td>
+                                    <td>@footprint.What</td>
+                                    <td class="text-end">
+                                        @if (footprint.IsEmpty)
+                                        {
+                                            <span class="text-subtle">empty</span>
+                                        }
+                                        else
+                                        {
+                                            @Describe(footprint.Bytes)
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th scope="row" colspan="2">Total</th>
+                            <td class="text-end">@Describe(report.TotalBytes)</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <div class="stat-grid stat-grid--tight">
+        <div class="stat-tile stat-tile--sm">
+            <span class="stat-tile__label">Items</span>
+            <span class="stat-tile__value">@report.CatalogueCount</span>
+            <span class="stat-tile__meta">@report.ArchivedCount archived</span>
+        </div>
+
+        <div class="stat-tile stat-tile--sm">
+            <span class="stat-tile__label">Log entries</span>
+            <span class="stat-tile__value">@report.ActivityEntries</span>
+            <span class="stat-tile__meta">of @report.ActivityLogLimit kept</span>
+        </div>
+
+        <div class="stat-tile stat-tile--sm">
+            <span class="stat-tile__label">Undo steps</span>
+            <span class="stat-tile__value">@report.UndoDepth</span>
+            <span class="stat-tile__meta">@(report.NextUndoLabel ?? "nothing to undo")</span>
+        </div>
+
+        <div class="stat-tile stat-tile--sm">
+            <span class="stat-tile__label">Theme</span>
+            <span class="stat-tile__value">@report.Theme</span>
+            <span class="stat-tile__meta">chosen in the top bar</span>
+        </div>
+    </div>
+
+    <section class="panel">
+        <div class="panel__header">
+            <h2 class="panel__title"><Icon Name="clock-history" /> What the figures are built on</h2>
+        </div>
+
+        <div class="panel__body">
+            <dl class="detail-grid">
+                <div class="detail-row">
+                    <dt>Generated history</dt>
+                    <dd>
+                        @report.GeneratedEntries of @report.ActivityEntries entries were generated to give the
+                        demonstration something to plot. They are labelled wherever they are shown.
+                    </dd>
+                </div>
+
+                <div class="detail-row">
+                    <dt>Date range</dt>
+                    <dd>
+                        @if (report.EarliestEntryUtc.HasValue && report.LatestEntryUtc.HasValue)
+                        {
+                            <span>
+                                @report.EarliestEntryUtc.Value.ToLocalTime().ToString("d MMM yyyy") to
+                                @report.LatestEntryUtc.Value.ToLocalTime().ToString("d MMM yyyy")
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-subtle">Nothing recorded yet</span>
+                        }
+                    </dd>
+                </div>
+
+                <div class="detail-row">
+                    <dt>Log is capped</dt>
+                    <dd>
+                        @if (report.LogIsFull)
+                        {
+                            <span class="text-caution">
+                                The log has reached @report.ActivityLogLimit entries, so the oldest are being
+                                dropped as new ones arrive.
+                            </span>
+                        }
+                        else
+                        {
+                            <span>
+                                The log drops its oldest entries past @report.ActivityLogLimit, which keeps
+                                browser storage bounded however long the app is used.
+                            </span>
+                        }
+                    </dd>
+                </div>
+
+                <div class="detail-row">
+                    <dt>Preferences</dt>
+                    <dd>
+                        @report.Preferences.Density density, landing on @report.Preferences.LandingPage,
+                        archived items @(report.Preferences.ShowArchived ? "included" : "hidden") by default.
+                        @(report.Preferences.ReduceMotion ? "Motion is reduced." : string.Empty)
+                    </dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+
+    <section class="panel panel--danger">
+        <div class="panel__header">
+            <h2 class="panel__title"><Icon Name="exclamation-triangle" /> Put everything back</h2>
+        </div>
+
+        <div class="panel__body">
+            @if (!isConfirmingClear)
+            {
+                <p>
+                    This removes everything this application has stored in this browser — the catalogue, the
+                    activity log and your preferences — and starts again from the seeded catalogue. Other
+                    sites on this origin are untouched.
+                </p>
+
+                <button type="button" class="btn btn-outline-danger" @onclick="AskToClear">
+                    <Icon Name="trash3" /> Clear everything
+                </button>
+            }
+            else
+            {
+                <p>
+                    Everything stored by this application will be removed, and the page will reload with the
+                    seeded catalogue. This cannot be undone.
+                </p>
+
+                <div class="row-actions">
+                    <button type="button" class="btn btn-danger" @onclick="ClearAsync" disabled="@isBusy">
+                        Yes, clear everything
+                    </button>
+                    <button type="button" class="btn btn-secondary" @onclick="CancelClear">
+                        Keep my data
+                    </button>
+                </div>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    private DiagnosticsReport? report;
+    private bool isConfirmingClear;
+    private bool isBusy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        report = await Diagnostics.CollectAsync();
+    }
+
+    /// <summary>
+    /// A byte count in the units a person reads, with the numbers kept short.
+    /// </summary>
+    private static string Describe(int bytes)
+    {
+        if (bytes < 1024)
+        {
+            return $"{bytes} B";
+        }
+
+        if (bytes < 1024 * 1024)
+        {
+            return $"{bytes / 1024d:0.#} kB";
+        }
+
+        return $"{bytes / (1024d * 1024d):0.#} MB";
+    }
+
+    private void AskToClear() => isConfirmingClear = true;
+
+    private void CancelClear() => isConfirmingClear = false;
+
+    private async Task ClearAsync()
+    {
+        isBusy = true;
+
+        try
+        {
+            await Diagnostics.ClearEverythingAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error clearing browser storage: {ex.Message}");
+        }
+
+        // Every store and repository caches what it read, so the only honest way to show the cleared state is
+        // to start the application again rather than to keep running against the copies in memory.
+        Navigation.NavigateTo("/", forceLoad: true);
+    }
+}

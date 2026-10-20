@@ -1,0 +1,81 @@
+@using System.Globalization
+
+@* A bare trend line, for showing the shape of a series without axes or labels.
+   Drawn in a 100 by 30 box that is stretched to whatever space it is given, with the stroke kept at
+   constant width by vector-effect, so the same markup works as a small row detail or a large tile.
+   It is decorative in the sense that the figure next to it carries the meaning, so the description
+   is optional and the whole thing is hidden from assistive technology when none is supplied. *@
+@if (Points is null)
+{
+    <span class="sparkline sparkline--empty" aria-hidden="true"></span>
+}
+else
+{
+    <svg class="sparkline @CssClass"
+         viewBox="0 0 100 30"
+         preserveAspectRatio="none"
+         role="@(string.IsNullOrEmpty(AccessibleLabel) ? null : "img")"
+         aria-label="@AccessibleLabel"
+         aria-hidden="@(string.IsNullOrEmpty(AccessibleLabel) ? "true" : null)"
+         focusable="false">
+        <polyline points="@Points"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  vector-effect="non-scaling-stroke" />
+    </svg>
+}
+
+@code {
+    /// <summary>The series, oldest first.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<int> Values { get; set; } = Array.Empty<int>();
+
+    /// <summary>Colour class from the design system, for example "text-brand".</summary>
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    /// <summary>What the line shows. Left empty for a line that only decorates a figure already on the page.</summary>
+    [Parameter]
+    public string? AccessibleLabel { get; set; }
+
+    private string? Points { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        // One point is not a trend, and none is not a line. Reporting null lets the caller's layout keep
+        // its shape rather than jumping when a chart appears.
+        if (Values is null || Values.Count < 2)
+        {
+            Points = null;
+            return;
+        }
+
+        var lowest = Values.Min();
+        var highest = Values.Max();
+        var span = highest - lowest;
+
+        var points = new List<string>(Values.Count);
+
+        for (var index = 0; index < Values.Count; index++)
+        {
+            var x = (double)index / (Values.Count - 1) * 100d;
+
+            // A flat series would divide by zero; drawing it down the middle is the honest picture of
+            // "the same on every day".
+            var y = span == 0 ? 15d : 28d - ((double)(Values[index] - lowest) / span * 26d);
+
+            points.Add($"{Number(x)},{Number(y)}");
+        }
+
+        Points = string.Join(" ", points);
+    }
+
+    /// <summary>
+    /// Formats a number for an SVG attribute. Always invariant: a comma decimal separator produces an
+    /// SVG that does not render.
+    /// </summary>
+    private static string Number(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+}

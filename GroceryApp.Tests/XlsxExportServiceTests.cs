@@ -9,7 +9,7 @@ namespace GroceryApp.Tests;
 /// </summary>
 public class XlsxExportServiceTests
 {
-    private readonly XlsxExportService _service = new();
+    private readonly XlsxExportService _service = new(new InventoryAnalyticsService());
 
     private static List<GroceryItemDto> CreateItems() => new()
     {
@@ -30,7 +30,7 @@ public class XlsxExportServiceTests
     }
 
     [Fact]
-    public async Task GenerateReportExcelAsync_ProducesAnOpenXmlPackageWithFiveWorksheets()
+    public async Task GenerateReportExcelAsync_ProducesAnOpenXmlPackageWithEightWorksheets()
     {
         // Act
         var workbook = await _service.GenerateReportExcelAsync(CreateItems());
@@ -44,17 +44,78 @@ public class XlsxExportServiceTests
         Assert.Contains("xl/workbook.xml", entries);
         Assert.Contains("xl/_rels/workbook.xml.rels", entries);
         Assert.Contains("xl/styles.xml", entries);
-        Assert.Equal(5, entries.Count(name => name.StartsWith("xl/worksheets/sheet", StringComparison.Ordinal)));
+        Assert.Equal(8, entries.Count(name => name.StartsWith("xl/worksheets/sheet", StringComparison.Ordinal)));
 
         var workbookXml = ReadEntry(archive, "xl/workbook.xml");
 
         foreach (var sheetName in new[]
                  {
-                     "Key Metrics", "Profit by Category", "Top Profitable Items", "Stock Analysis", "Price Range Analysis"
+                     "Key Metrics", "Profit by Category", "Top Profitable Items", "Stock Analysis",
+                     "Price Range Analysis", "ABC Analysis", "Supplier Summary", "Items to Deal With"
                  })
         {
             Assert.Contains($"name=\"{sheetName}\"", workbookXml);
         }
+    }
+
+    [Fact]
+    public async Task GenerateReportExcelAsync_AbcSheet_BandsTheValueHeld()
+    {
+        // Act
+        var workbook = await _service.GenerateReportExcelAsync(CreateItems());
+
+        // Assert
+        using var archive = Open(workbook);
+        var sheet = ReadEntry(archive, "xl/worksheets/sheet6.xml");
+
+        Assert.Contains("Band", sheet);
+        Assert.Contains("Running Share", sheet);
+        Assert.Contains("of 3 items carry", sheet);
+    }
+
+    [Fact]
+    public async Task GenerateReportExcelAsync_SupplierSheet_SaysWhenThereIsNoSupplier()
+    {
+        // Arrange: none of the sample items records a supplier.
+        var items = CreateItems();
+
+        // Act
+        var workbook = await _service.GenerateReportExcelAsync(items);
+
+        // Assert
+        using var archive = Open(workbook);
+        var sheet = ReadEntry(archive, "xl/worksheets/sheet7.xml");
+
+        Assert.Contains("(no supplier)", sheet);
+        Assert.Contains("Value at Retail", sheet);
+    }
+
+    [Fact]
+    public async Task GenerateReportExcelAsync_ItemsToDealWithSheet_ExplainsEachLine()
+    {
+        // Act
+        var workbook = await _service.GenerateReportExcelAsync(CreateItems());
+
+        // Assert
+        using var archive = Open(workbook);
+        var sheet = ReadEntry(archive, "xl/worksheets/sheet8.xml");
+
+        // The lamb has no stock, which is the first thing somebody would do about the line.
+        Assert.Contains("Lamb Chops", sheet);
+        Assert.Contains("Out of stock", sheet);
+    }
+
+    [Fact]
+    public async Task GenerateReportExcelAsync_ForAnEmptyCatalogue_StillWritesEverySheet()
+    {
+        // Act
+        var workbook = await _service.GenerateReportExcelAsync(new List<GroceryItemDto>());
+
+        // Assert: the workbook opens rather than being a file with sheets missing from it.
+        using var archive = Open(workbook);
+        var sheet = ReadEntry(archive, "xl/worksheets/sheet8.xml");
+
+        Assert.Contains("Nothing needs attention", sheet);
     }
 
     [Fact]
@@ -201,7 +262,7 @@ public class XlsxExportServiceTests
 
         // Assert
         using var archive = Open(workbook);
-        Assert.Equal(5, archive.Entries.Count(entry => entry.FullName.StartsWith("xl/worksheets/sheet", StringComparison.Ordinal)));
+        Assert.Equal(8, archive.Entries.Count(entry => entry.FullName.StartsWith("xl/worksheets/sheet", StringComparison.Ordinal)));
         Assert.Contains("<v>0</v>", ReadEntry(archive, "xl/worksheets/sheet1.xml"));
     }
 }

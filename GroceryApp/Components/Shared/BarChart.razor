@@ -1,0 +1,60 @@
+@using System.Globalization
+
+@* Horizontal bars drawn with elements rather than a canvas or a library.
+   Bars are easier to read than a ring when the labels are words, the fill is a plain width
+   percentage so it reflows with the container, and every row already carries its own label and
+   figure as text, so the chart needs no separate accessible description. *@
+<ul class="bar-chart">
+    @foreach (var bar in Bars)
+    {
+        <li class="bar-chart__row">
+            <span class="bar-chart__label">@bar.Label</span>
+            <span class="bar-chart__track">
+                <span class="bar-chart__fill @bar.CssClass"
+                      style="width:@(Width(bar))%"
+                      aria-hidden="true"></span>
+            </span>
+            <span class="bar-chart__value tnum">@bar.ValueLabel</span>
+        </li>
+    }
+</ul>
+
+@code {
+    /// <summary>
+    /// One bar.
+    /// </summary>
+    /// <param name="Label">Name shown to the left of the bar.</param>
+    /// <param name="ValueLabel">The figure as formatted for display.</param>
+    /// <param name="Value">The raw figure, used to work out the bar's length.</param>
+    /// <param name="CssClass">Design system class supplying the bar's colour.</param>
+    public sealed record Bar(string Label, string ValueLabel, decimal Value, string CssClass);
+
+    /// <summary>The bars, in the order they should be read.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<Bar> Bars { get; set; } = Array.Empty<Bar>();
+
+    private decimal largest;
+
+    protected override void OnParametersSet()
+    {
+        // Scaled against the longest bar rather than a round number, so a set of similar values still
+        // shows its differences instead of a row of near-identical bars.
+        largest = Bars.Count == 0 ? 0m : Bars.Max(bar => bar.Value);
+    }
+
+    /// <summary>
+    /// Length of a bar as a percentage of the longest one.
+    /// </summary>
+    private string Width(Bar bar)
+    {
+        if (largest <= 0m || bar.Value <= 0m)
+        {
+            return "0";
+        }
+
+        // Floored at a hair so a very small value is still visible rather than looking like no data.
+        var percent = Math.Max(1m, bar.Value / largest * 100m);
+
+        return percent.ToString("0.##", CultureInfo.InvariantCulture);
+    }
+}

@@ -1,0 +1,274 @@
+@page "/suppliers"
+@inject IGroceryService GroceryService
+@inject ISupplierAnalyticsService SupplierService
+@inject NavigationManager Navigation
+
+<PageTitle>Suppliers</PageTitle>
+
+@* Who the catalogue is bought from.
+
+   Items name a supplier rather than pointing at a record, so this page is a view over the catalogue: it can
+   be right about the value held without a supplier table to keep in step. The selected supplier travels in
+   the address bar, so a supplier's page can be linked to. *@
+
+<header class="page-header">
+    <div class="page-header__text">
+        <h1>Suppliers</h1>
+        <p class="page-subtitle">
+            @if (analysis is null)
+            {
+                <text>Grouping the catalogue by supplier…</text>
+            }
+            else
+            {
+                <text>@Summary</text>
+            }
+        </p>
+    </div>
+
+    <div class="page-actions">
+        <a class="btn btn-secondary" href="/restock">
+            <Icon Name="truck" /> Restock worksheet
+        </a>
+    </div>
+</header>
+
+@if (analysis is null)
+{
+    <div class="loading-state">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Loading the catalogue…
+    </div>
+}
+else
+{
+    @if (analysis.UnassignedItemCount > 0)
+    {
+        <div class="alert alert--caution" role="status">
+            <p class="alert__title">
+                @analysis.UnassignedItemCount
+                @(analysis.UnassignedItemCount == 1 ? "item names" : "items name") no supplier.
+            </p>
+            <p>
+                An item without a supplier cannot be reordered from this application, so it is worth filling
+                in. They are grouped below so they can be found in one place.
+            </p>
+        </div>
+    }
+
+    @if (analysis.NeedingOrders.Count > 0)
+    {
+        <section class="panel">
+            <div class="panel__header">
+                <h2 class="panel__title"><Icon Name="truck" /> Worth a phone call today</h2>
+            </div>
+
+            <div class="panel__body panel__body--flush">
+                <ul class="supplier-call-list">
+                    @foreach (var supplier in analysis.NeedingOrders)
+                    {
+                        <li class="supplier-call-list__item">
+                            <a class="supplier-call-list__name" href="@HrefFor(supplier.Name)">@supplier.Name</a>
+                            <span class="supplier-call-list__detail">
+                                @supplier.NeedsOrderingCount of @supplier.ItemCount
+                                @(supplier.NeedsOrderingCount == 1 ? "line" : "lines") to order
+                                @if (supplier.OutOfStockCount > 0)
+                                {
+                                    <span class="text-caution">
+                                        · @supplier.OutOfStockCount out of stock
+                                    </span>
+                                }
+                            </span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </section>
+    }
+
+    <section class="panel">
+        <div class="panel__header">
+            <h2 class="panel__title"><Icon Name="boxes" /> Every supplier</h2>
+        </div>
+
+        <div class="panel__body panel__body--flush">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Supplier</th>
+                            <th scope="col">Supplies</th>
+                            <th scope="col" class="text-end">Items</th>
+                            <th scope="col" class="text-end">Units</th>
+                            <th scope="col" class="text-end">Value</th>
+                            <th scope="col" class="text-end">Margin</th>
+                            <th scope="col" class="text-end">To order</th>
+                            <th scope="col" class="text-end">Share</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var supplier in analysis.Suppliers)
+                        {
+                            <tr class="@(IsSelected(supplier.Name) ? "table__row--selected" : null)">
+                                <th scope="row">
+                                    <a href="@HrefFor(supplier.Name)">@supplier.Name</a>
+                                    @if (supplier.ArchivedCount > 0)
+                                    {
+                                        <span class="text-subtle"> · @supplier.ArchivedCount archived</span>
+                                    }
+                                </th>
+                                <td>@string.Join(", ", supplier.Categories)</td>
+                                <td class="text-end">@supplier.ItemCount</td>
+                                <td class="text-end">@supplier.UnitsHeld</td>
+                                <td class="text-end">@supplier.ValueAtRetail.ToString("C0")</td>
+                                <td class="text-end">@supplier.MarginPercent.ToString("0.#")%</td>
+                                <td class="text-end">
+                                    @if (supplier.NeedsOrderingCount > 0)
+                                    {
+                                        <span class="chip chip--caution">@supplier.NeedsOrderingCount</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-subtle">&mdash;</span>
+                                    }
+                                </td>
+                                <td class="text-end">@supplier.ShareOfCatalogueValue.ToString("0.#")%</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    @if (selected is not null)
+    {
+        <section class="panel">
+            <div class="panel__header">
+                <h2 class="panel__title"><Icon Name="basket3-fill" /> @selected.Name</h2>
+                <a class="btn btn-ghost btn-sm" href="/suppliers">
+                    <Icon Name="x-lg" /> Close
+                </a>
+            </div>
+
+            <div class="panel__body panel__body--flush">
+                <div class="item-list">
+                    @foreach (var item in selected.Items)
+                    {
+                        <article class="item-row">
+                            <div class="item-row__main">
+                                <div class="item-row__head">
+                                    <a class="item-row__name" href="/groceries/@item.Id">@item.Name</a>
+                                    <span class="chip @CategoryChip.ClassFor(item.Category)">@item.Category</span>
+                                    <span class="item-row__id">@item.Sku</span>
+                                </div>
+
+                                <div class="item-row__figures">
+                                    <span>Price <span class="item-row__figure-value">@item.Price.ToString("C2")</span></span>
+                                    <span>Held <span class="item-row__figure-value">@item.StockRetailValue.ToString("C0")</span></span>
+                                    <span>Margin <span class="item-row__figure-value">@item.MarginPercent.ToString("0.#")%</span></span>
+                                </div>
+                            </div>
+
+                            <div class="item-row__aside">
+                                <div class="item-row__stock">
+                                    <span class="item-row__label">Stock</span>
+                                    <span class="item-row__figure-value">@item.Stock</span>
+                                    <span class="text-subtle">/ @item.ReorderPoint</span>
+                                </div>
+                            </div>
+                        </article>
+                    }
+                </div>
+            </div>
+        </section>
+    }
+}
+
+@code {
+    private SupplierAnalysis? analysis;
+    private SupplierSummary? selected;
+    private string? selectedName;
+
+    protected override async Task OnInitializedAsync()
+    {
+        selectedName = ReadSupplierFromAddress();
+
+        var catalogue = await GroceryService.GetAllGroceriesAsync();
+        analysis = SupplierService.Summarise(catalogue);
+
+        selected = selectedName is null
+            ? null
+            : analysis.Suppliers.FirstOrDefault(supplier =>
+                string.Equals(supplier.Name, selectedName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Reads the supplier the address bar asks for, so a supplier's page can be linked to and reloaded.
+    /// </summary>
+    private string? ReadSupplierFromAddress()
+    {
+        var query = new Uri(Navigation.Uri).Query;
+
+        if (string.IsNullOrEmpty(query))
+        {
+            return null;
+        }
+
+        // Hand parsed rather than built with a query helper: there is one parameter, and the rest of the
+        // application parses its own filters the same way.
+        foreach (var part in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var separator = part.IndexOf('=');
+
+            if (separator <= 0)
+            {
+                continue;
+            }
+
+            if (!part.AsSpan(0, separator).Equals("supplier", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var value = Uri.UnescapeDataString(part[(separator + 1)..].Replace("+", " "));
+
+            return string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+
+        return null;
+    }
+
+    /// <summary>The address for one supplier, with the name escaped so an ampersand in it cannot break it.</summary>
+    private static string HrefFor(string name) => $"/suppliers?supplier={Uri.EscapeDataString(name)}";
+
+    private bool IsSelected(string name) =>
+        selected is not null && string.Equals(selected.Name, name, StringComparison.OrdinalIgnoreCase);
+
+    private string Summary
+    {
+        get
+        {
+            if (analysis is null)
+            {
+                return string.Empty;
+            }
+
+            var suppliers = analysis.Suppliers.Count;
+            var parts = new List<string>
+            {
+                $"{suppliers} {(suppliers == 1 ? "supplier" : "suppliers")}",
+                $"{analysis.TotalValueAtRetail:C0} of stock across them"
+            };
+
+            var toOrder = analysis.NeedingOrders.Sum(supplier => supplier.NeedsOrderingCount);
+
+            if (toOrder > 0)
+            {
+                parts.Add($"{toOrder} {(toOrder == 1 ? "line" : "lines")} to order");
+            }
+
+            return string.Join(" · ", parts);
+        }
+    }
+}

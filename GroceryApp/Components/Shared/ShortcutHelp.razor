@@ -1,0 +1,75 @@
+@* The list of shortcuts the application answers to. Reachable with "?" and dismissed with Escape, a click
+   outside, or the close button. *@
+@if (Open)
+{
+    <div class="palette-backdrop" @onclick="Close">
+        <div class="palette shortcut-help"
+             role="dialog"
+             aria-modal="true"
+             aria-label="Keyboard shortcuts"
+             @onclick:stopPropagation="true">
+            <div class="palette__field palette__field--title">
+                <h2 class="palette__heading">Keyboard shortcuts</h2>
+                <button type="button" class="icon-button" @onclick="Close" aria-label="Close the shortcut list">
+                    <Icon Name="x-lg" />
+                </button>
+            </div>
+
+            <ul class="shortcut-list">
+                @foreach (var shortcut in Shortcuts)
+                {
+                    <li class="shortcut-list__item">
+                        <span class="shortcut-list__keys">
+                            @foreach (var key in shortcut.Keys)
+                            {
+                                <kbd class="palette__key">@key</kbd>
+                            }
+                        </span>
+                        <span class="shortcut-list__what">
+                            <span class="palette__title">@shortcut.Title</span>
+                            <span class="palette__subtitle">@shortcut.Detail</span>
+                        </span>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool Open { get; set; }
+
+    [Parameter]
+    public EventCallback Closed { get; set; }
+
+    private static readonly (string[] Keys, string Title, string Detail)[] Shortcuts =
+    {
+        (
+            new[] { "Ctrl", "K" },
+            "Command palette",
+            "Every page, every item, and the actions worth reaching without hunting for them"),
+        (
+            new[] { "/" },
+            "Search the catalogue",
+            "Puts the cursor in the search field, opening the catalogue first if you are elsewhere"),
+        (
+            new[] { "Ctrl", "Z" },
+            "Undo",
+            "Puts the catalogue back the way it was, one change at a time"),
+        (
+            new[] { "Ctrl", "Shift", "Z" },
+            "Redo",
+            "Applies again the change that was undone"),
+        (
+            new[] { "?" },
+            "This list",
+            "Every shortcut the application answers to"),
+        (
+            new[] { "Esc" },
+            "Close",
+            "Leaves this list, the palette, or whichever field has the cursor")
+    };
+
+    private Task Close() => Closed.InvokeAsync();
+}

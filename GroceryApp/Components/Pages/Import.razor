@@ -1,0 +1,303 @@
+@page "/import"
+@inject IGroceryService GroceryService
+@inject IInventoryImportService ImportService
+@inject ICatalogueHistoryService History
+@inject NavigationManager Navigation
+
+<PageTitle>Import a catalogue</PageTitle>
+
+@* Loading a catalogue from a file.
+
+   Nothing is written until the preview has been shown and accepted: a file is the one input that can change
+   every item at once, and the one that can be wrong in ways the entry form cannot be. *@
+
+<header class="page-header">
+    <div class="page-header__text">
+        <h1>Import a catalogue</h1>
+        <p class="page-subtitle">
+            Paste rows or choose a file. Every row is checked against the catalogue and nothing is written
+            until you have seen what it would do.
+        </p>
+    </div>
+</header>
+
+<section class="panel">
+    <div class="panel__header">
+        <h2 class="panel__title"><Icon Name="upload" /> The file</h2>
+    </div>
+
+    <div class="panel__body">
+        <div class="filter-bar__chips">
+            <span class="filter-bar__group" role="group" aria-label="Format">
+                @foreach (var option in Formats)
+                {
+                    var isOn = format == option;
+
+                    <button type="button"
+                            class="chip chip--toggle @(isOn ? "chip--on" : null)"
+                            aria-pressed="@(isOn ? "true" : "false")"
+                            @onclick="() => SetFormat(option)">
+                        @option
+                    </button>
+                }
+            </span>
+
+            <button type="button" class="btn btn-ghost btn-sm" @onclick="UseSample">
+                <Icon Name="file-earmark-spreadsheet" /> Use the example
+            </button>
+        </div>
+
+        <label class="field">
+            <span class="field__label">@(format == ImportFormat.Csv ? "Comma separated rows" : "A JSON array of items")</span>
+            <textarea class="form-control code-input"
+                      rows="8"
+                      placeholder="@ImportService.Sample(format)"
+                      aria-label="The catalogue to read"
+                      value="@text"
+                      @oninput="OnTextInput"></textarea>
+        </label>
+
+        <div class="row-actions">
+            <InputFile OnChange="OnFileChosen" accept=".csv,.json,.txt,text/csv,application/json" />
+            <button type="button" class="btn btn-primary" @onclick="PreviewAsync" disabled="@isBusy">
+                <Icon Name="search" /> Read it and show me what it would do
+            </button>
+        </div>
+    </div>
+</section>
+
+@if (message is not null)
+{
+    <div class="alert @(messageIsError ? "alert--danger" : "alert--positive")" role="status">
+        <p class="alert__title">@message</p>
+    </div>
+}
+
+@if (preview is not null)
+{
+    @if (!preview.IsReadable)
+    {
+        <div class="alert alert--danger" role="alert">
+            <p class="alert__title">That file was not read</p>
+            <p>@preview.Error</p>
+        </div>
+    }
+    else
+    {
+        @* PREVIEW *@
+        <div class="import-summary">
+            <div class="import-summary__counts">
+                <span class="import-count import-count--new">@preview.NewCount would be added</span>
+                <span class="import-count import-count--update">@preview.UpdateCount would be updated</span>
+                <span class="import-count import-count--unchanged">@preview.UnchangedCount already match</span>
+                @if (preview.InvalidCount > 0)
+                {
+                    <span class="import-count import-count--invalid">@preview.InvalidCount cannot be read</span>
+                }
+            </div>
+            <p class="import-summary__note">@preview.Summary</p>
+        </div>
+
+        <section class="panel">
+            <div class="panel__header">
+                <h2 class="panel__title"><Icon Name="list" /> What the file would do</h2>
+                <p class="panel__meta">@preview.Rows.Count rows read</p>
+            </div>
+
+            <div class="table-scroll">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Line</th>
+                            <th scope="col">Item</th>
+                            <th scope="col">Code</th>
+                            <th scope="col">What happens</th>
+                            <th scope="col">Why</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in preview.Rows.Take(50))
+                        {
+                            <tr class="import-row import-row--@row.Status.ToString().ToLowerInvariant()">
+                                <td class="num">@row.LineNumber</td>
+                                <td>@row.Name</td>
+                                <td><span class="mono">@row.Sku</span></td>
+                                <td><span class="pill pill--@StatusTone(row.Status)">@StatusLabel(row.Status)</span></td>
+                                <td class="import-row__reason">@row.Reason</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (preview.Rows.Count > 50)
+            {
+                <p class="panel__footnote">Showing the first 50 of @preview.Rows.Count rows.</p>
+            }
+        </section>
+
+        <div class="row-actions row-actions--end">
+            <label class="checkbox-row">
+                <input type="checkbox" checked="@updateExisting" @onchange="OnUpdateExistingChanged" />
+                <span>Also write the rows that would update items already here</span>
+            </label>
+
+            <button type="button" class="btn btn-ghost" @onclick="() => ApplyAsync(false)" disabled="@isBusy">
+                Add the @preview.NewCount new ones only
+            </button>
+
+            <button type="button" class="btn btn-primary"
+                    @onclick="() => ApplyAsync(true)"
+                    disabled="@(isBusy || (!preview.HasWrites))">
+                <Icon Name="check2-circle" /> Apply the whole file
+            </button>
+        </div>
+    }
+}
+
+@code {
+    private const long MaxFileBytes = 2 * 1024 * 1024;
+
+    private static readonly ImportFormat[] Formats = { ImportFormat.Csv, ImportFormat.Json };
+
+    private ImportFormat format = ImportFormat.Csv;
+    private string? text;
+    private ImportPreview? preview;
+    private bool updateExisting;
+    private bool isBusy;
+    private string? message;
+    private bool messageIsError;
+
+    private void SetFormat(ImportFormat chosen)
+    {
+        format = chosen;
+
+        // The rows that are on screen were read as the other format, so they go rather than being left up as
+        // a preview of something that is no longer being looked at.
+        preview = null;
+        message = null;
+    }
+
+    private Task OnTextInput(ChangeEventArgs args)
+    {
+        text = args.Value?.ToString();
+        preview = null;
+
+        return Task.CompletedTask;
+    }
+
+    private async Task OnFileChosen(InputFileChangeEventArgs args)
+    {
+        var file = args.File;
+
+        if (file.Size > MaxFileBytes)
+        {
+            preview = null;
+            messageIsError = true;
+            message = $"That file is {file.Size / 1024:N0} kB. The most this page reads is 2,048 kB.";
+
+            return;
+        }
+
+        try
+        {
+            using var stream = file.OpenReadStream(MaxFileBytes);
+            using var reader = new StreamReader(stream);
+
+            text = await reader.ReadToEndAsync();
+
+            // A .json file is read as JSON whatever the toggle says: the file names its own format.
+            format = file.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
+                ? ImportFormat.Json
+                : ImportFormat.Csv;
+
+            preview = null;
+            messageIsError = false;
+            message = $"Read {file.Name}.";
+        }
+        catch (Exception ex)
+        {
+            messageIsError = true;
+            message = "That file could not be read. A CSV or JSON file of up to 2 MB is what this page reads.";
+            Console.WriteLine($"Error reading the chosen file: {ex.Message}");
+        }
+    }
+
+    private void UseSample()
+    {
+        text = ImportService.Sample(format);
+        preview = null;
+        message = null;
+    }
+
+    private async Task PreviewAsync()
+    {
+        isBusy = true;
+
+        try
+        {
+            var catalogue = await GroceryService.GetAllGroceriesAsync();
+            preview = ImportService.Preview(text, format, catalogue);
+
+            messageIsError = preview.IsReadable;
+            message = null;
+        }
+        catch (Exception ex)
+        {
+            messageIsError = true;
+            message = "The catalogue could not be read, so there is nothing to compare the file against.";
+            Console.WriteLine($"Error preparing the import preview: {ex.Message}");
+        }
+
+        isBusy = false;
+    }
+
+    private void OnUpdateExistingChanged(ChangeEventArgs args) => updateExisting = args.Value is true;
+
+    private static string StatusLabel(ImportStatus status) => status switch
+    {
+        ImportStatus.New => "New",
+        ImportStatus.Update => "Update",
+        ImportStatus.Unchanged => "No change",
+        _ => "Cannot read"
+    };
+
+    private static string StatusTone(ImportStatus status) => status switch
+    {
+        ImportStatus.New => "positive",
+        ImportStatus.Update => "info",
+        ImportStatus.Unchanged => "neutral",
+        _ => "danger"
+    };
+
+    private async Task ApplyAsync(bool withUpdates)
+    {
+        if (preview is null)
+        {
+            return;
+        }
+
+        isBusy = true;
+
+        try
+        {
+            var result = await ImportService.ApplyAsync(preview, withUpdates);
+
+            messageIsError = result.Total == 0;
+            message = result.Total == 0
+                ? "Nothing was written. Every row was already in the catalogue, or could not be read."
+                : $"Added {result.Created} and updated {result.Updated}. One undo puts the whole import back.";
+
+            preview = null;
+            text = null;
+        }
+        catch (Exception ex)
+        {
+            messageIsError = true;
+            message = "The import could not be written to browser storage. Please try again.";
+            Console.WriteLine($"Error applying the import: {ex.Message}");
+        }
+
+        isBusy = false;
+    }
+}

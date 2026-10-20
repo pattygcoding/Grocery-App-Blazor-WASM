@@ -1,0 +1,236 @@
+@* Controls that narrow and order the catalogue.
+   The bar edits the filter it is handed and passes it straight back, so the page that owns the filter
+   decides when to re-query and when to write the address bar. The search box commits on change rather
+   than on every keystroke, which keeps a fifty row list from re-sorting while a word is still being
+   typed. *@
+<div class="filter-bar">
+    <div class="filter-bar__row">
+        <span class="filter-bar__search">
+            <Icon Name="search" CssClass="filter-bar__search-icon" />
+            <label class="visually-hidden" for="catalogue-search">Search the catalogue</label>
+            <input id="catalogue-search"
+                   class="form-control"
+                   type="search"
+                   placeholder="Search name, SKU, supplier, tag or notes"
+                   value="@Filter.SearchText"
+                   @onchange="OnSearchChanged" />
+        </span>
+
+        <select class="form-control filter-bar__select"
+                aria-label="Sort by"
+                @onchange="OnSortChanged">
+            @foreach (var option in SortOptions)
+            {
+                <option value="@option.Value" selected="@(Filter.SortBy == option.Value)">@option.Label</option>
+            }
+        </select>
+
+        <button type="button"
+                class="btn btn-secondary"
+                @onclick="ToggleDirection"
+                aria-label="@DirectionDescription">
+            <Icon Name="@(Filter.Direction == SortDirection.Ascending ? "arrow-up" : "arrow-down")" />
+            @(Filter.Direction == SortDirection.Ascending ? "Ascending" : "Descending")
+        </button>
+
+        @if (Filter.IsNarrowing)
+        {
+            <button type="button" class="btn btn-ghost" @onclick="ClearAll">
+                <Icon Name="x-lg" /> Clear filters
+            </button>
+        }
+    </div>
+
+    <div class="filter-bar__chips">
+        <span class="filter-bar__group" role="group" aria-label="Categories">
+            @foreach (var category in Enum.GetValues<Category>())
+            {
+                var isOn = Filter.Categories.Contains(category);
+
+                <button type="button"
+                        class="chip chip--toggle @CategoryChip.ClassFor(category) @(isOn ? "chip--on" : null)"
+                        aria-pressed="@(isOn ? "true" : "false")"
+                        @onclick="() => ToggleCategoryAsync(category)">
+                    @category
+                </button>
+            }
+        </span>
+
+        <select class="form-control form-control--sm"
+                aria-label="Stock position"
+                @onchange="OnStockChanged">
+            @foreach (var option in StockOptions)
+            {
+                <option value="@option.Value" selected="@(Filter.Stock == option.Value)">@option.Label</option>
+            }
+        </select>
+
+        <select class="form-control form-control--sm"
+                aria-label="ABC band"
+                @onchange="OnAbcChanged">
+            <option value="" selected="@(!Filter.AbcClass.HasValue)">Every band</option>
+            @foreach (var band in Enum.GetValues<AbcClass>())
+            {
+                <option value="@band" selected="@(Filter.AbcClass == band)">Band @band</option>
+            }
+        </select>
+
+        @if (Suppliers.Count > 1)
+        {
+            <select class="form-control form-control--sm"
+                    aria-label="Supplier"
+                    @onchange="OnSupplierChanged">
+                <option value="" selected="@(Filter.Suppliers.Count == 0)">Every supplier</option>
+                @foreach (var supplier in Suppliers)
+                {
+                    <option value="@supplier" selected="@(Filter.Suppliers.Contains(supplier))">@supplier</option>
+                }
+            </select>
+        }
+
+        <label class="filter-bar__switch">
+            <input type="checkbox" checked="@Filter.IncludeArchived" @onchange="OnArchivedChanged" />
+            <span>Archived</span>
+        </label>
+    </div>
+</div>
+
+@code {
+    /// <summary>The filter being edited. The page owns the instance and decides what to do with changes.</summary>
+    [Parameter, EditorRequired]
+    public InventoryFilter Filter { get; set; } = new();
+
+    /// <summary>Suppliers present in the catalogue, so the control only offers ones that exist.</summary>
+    [Parameter]
+    public IReadOnlyList<string> Suppliers { get; set; } = Array.Empty<string>();
+
+    /// <summary>Raised whenever the filter changes, carrying the filter that changed.</summary>
+    [Parameter]
+    public EventCallback<InventoryFilter> FilterChanged { get; set; }
+
+    private static readonly (InventorySortField Value, string Label)[] SortOptions =
+    {
+        (InventorySortField.Name, "Name"),
+        (InventorySortField.Category, "Category"),
+        (InventorySortField.Supplier, "Supplier"),
+        (InventorySortField.Price, "Price"),
+        (InventorySortField.MarginPercent, "Margin %"),
+        (InventorySortField.Stock, "Stock"),
+        (InventorySortField.StockValue, "Value held"),
+        (InventorySortField.ReorderPoint, "Reorder point"),
+        (InventorySortField.AbcClass, "ABC band")
+    };
+
+    private static readonly (StockFilter Value, string Label)[] StockOptions =
+    {
+        (StockFilter.Any, "Any stock"),
+        (StockFilter.AtOrBelowReorderPoint, "Needs ordering"),
+        (StockFilter.OutOfStock, "Out of stock"),
+        (StockFilter.CriticalOrWorse, "Nearly out"),
+        (StockFilter.Healthy, "Covered"),
+        (StockFilter.Overstock, "Overstocked")
+    };
+
+    private string DirectionDescription =>
+        Filter.Direction == SortDirection.Ascending
+            ? "Sorted ascending. Reverse the order."
+            : "Sorted descending. Reverse the order.";
+
+    private Task NotifyAsync() => FilterChanged.InvokeAsync(Filter);
+
+    private Task OnSearchChanged(ChangeEventArgs args)
+    {
+        Filter.SearchText = args.Value?.ToString();
+        return NotifyAsync();
+    }
+
+    private Task OnSortChanged(ChangeEventArgs args)
+    {
+        if (Enum.TryParse<InventorySortField>(args.Value?.ToString(), out var field))
+        {
+            Filter.SortBy = field;
+        }
+
+        return NotifyAsync();
+    }
+
+    private Task ToggleDirection()
+    {
+        Filter.Direction = Filter.Direction == SortDirection.Ascending
+            ? SortDirection.Descending
+            : SortDirection.Ascending;
+
+        return NotifyAsync();
+    }
+
+    private Task ToggleCategoryAsync(Category category)
+    {
+        // Remove returns false when the category was not selected, which is the add case.
+        if (!Filter.Categories.Remove(category))
+        {
+            Filter.Categories.Add(category);
+        }
+
+        return NotifyAsync();
+    }
+
+    private Task OnStockChanged(ChangeEventArgs args)
+    {
+        if (Enum.TryParse<StockFilter>(args.Value?.ToString(), out var stock))
+        {
+            Filter.Stock = stock;
+        }
+
+        return NotifyAsync();
+    }
+
+    private Task OnAbcChanged(ChangeEventArgs args)
+    {
+        Filter.AbcClass = Enum.TryParse<AbcClass>(args.Value?.ToString(), out var band) ? band : null;
+        return NotifyAsync();
+    }
+
+    private Task OnSupplierChanged(ChangeEventArgs args)
+    {
+        var supplier = args.Value?.ToString();
+
+        Filter.Suppliers.Clear();
+
+        if (!string.IsNullOrEmpty(supplier))
+        {
+            Filter.Suppliers.Add(supplier);
+        }
+
+        return NotifyAsync();
+    }
+
+    private Task OnArchivedChanged(ChangeEventArgs args)
+    {
+        Filter.IncludeArchived = args.Value is true;
+
+        return NotifyAsync();
+    }
+
+    /// <summary>
+    /// Puts every control back to its default, ordering included, because "clear the filters" is what a
+    /// visitor reaches for when the list has stopped making sense to them.
+    /// </summary>
+    private Task ClearAll()
+    {
+        Filter.SearchText = null;
+        Filter.Categories.Clear();
+        Filter.Suppliers.Clear();
+        Filter.Tags.Clear();
+        Filter.MinimumPrice = null;
+        Filter.MaximumPrice = null;
+        Filter.MaximumMarginPercent = null;
+        Filter.Stock = StockFilter.Any;
+        Filter.AbcClass = null;
+        Filter.IncludeArchived = false;
+        Filter.FavouritesOnly = false;
+        Filter.SortBy = InventorySortField.Name;
+        Filter.Direction = SortDirection.Ascending;
+
+        return NotifyAsync();
+    }
+}

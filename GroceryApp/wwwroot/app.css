@@ -12,6 +12,13 @@
    and changed at runtime by the theme control in the top bar. Both themes are driven by
    the same tokens, so nothing below hardcodes a colour.
 
+   Palette: the ink-and-mint scheme shared by the house sites - pattygcoding.com
+   (PG-Website) and connectfour.pattygcoding.com. An ink ramp (#05070c to #26303f) for
+   surfaces and lines, the accent green for anything the app acts through (#8debc4 dark,
+   PG-Website's #21654e light so it stays legible on white), and Inter with JetBrains
+   Mono in place of the system faces. The connection is deliberate: the sidebar header
+   already mirrors Neo-Connect-Four's, and the top bar links back to the portfolio.
+
    Sections
      1. Tokens (light + dark)
      2. Base and typography
@@ -26,54 +33,59 @@
 :root {
     color-scheme: light;
 
-    /* Surfaces */
-    --canvas: #f4f5f7;
+    /* Surfaces - the ink ramp (ink-950 canvas, ink-900 surface, ink-800 sunken). */
+    --canvas: #f4f6f5;
     --surface: #ffffff;
-    --surface-muted: #f8f9fb;
-    --surface-sunken: #eef0f4;
-    --surface-inverse: #111827;
+    --surface-muted: #f4f6f5;
+    --surface-sunken: #eef1f0;
+    --surface-inverse: #0b1015;
 
-    /* Lines */
-    --border: #e3e6eb;
-    --border-strong: #ced4de;
+    /* Lines - the reference draws hairlines as translucent ink (`border-line/10` and
+       `/20`), so they tint whatever they sit on instead of being a fixed grey. */
+    --border: rgba(15, 23, 34, 0.10);
+    --border-strong: rgba(15, 23, 34, 0.20);
 
     /* Text */
-    --text: #101828;
-    --text-muted: #4a5464;
-    --text-subtle: #667085; /* AA compliant (4.97:1 on white) for small caps labels */
-    --text-on-brand: #ffffff;
+    --text: #1c232b;
+    --text-muted: #5b6472;
+    --text-subtle: #6b7482; /* fg-dim nudged darker: AA on white (4.73:1) for small caps */
+    --text-on-brand: #ffffff; /* white on the deep green fill (6.91:1) */
 
-    /* Brand */
-    --brand: #4338ca;
-    --brand-hover: #3730a3;
-    --brand-soft: #eef2ff;
-    --brand-border: #c7d2fe;
+    /* Brand - the accent. In light mode this is PG-Website's own light accent, a deep
+       green: the pale mint only clears 3.8:1 on white, so the text/outline role needs
+       the darker value and white reads on it. The dark theme flips to the pale mint. */
+    --brand: #21654e;
+    --brand-hover: #18493a;
+    --brand-soft: rgba(33, 101, 78, 0.10);
+    --brand-border: rgba(33, 101, 78, 0.30);
 
-    /* Status */
-    --positive: #047857;
-    --positive-soft: #ecfdf5;
-    --positive-border: #a7f3d0;
-    --caution: #b45309;
-    --caution-soft: #fffbeb;
-    --caution-border: #fde68a;
+    /* Status - red, amber and sky are the reference's own; positive is a greener green
+       than the deep-green brand so a primary button and a success button never look
+       alike. Each is dark enough to clear 4.5:1 on its own 10% tint, not just on white. */
+    --positive: #166534;
+    --positive-soft: rgba(22, 101, 52, 0.10);
+    --positive-border: rgba(22, 101, 52, 0.30);
+    --caution: #92400e;
+    --caution-soft: rgba(146, 64, 14, 0.10);
+    --caution-border: rgba(146, 64, 14, 0.30);
     --danger: #b91c1c;
-    --danger-soft: #fef2f2;
-    --danger-border: #fecaca;
+    --danger-soft: rgba(185, 28, 28, 0.10);
+    --danger-border: rgba(185, 28, 28, 0.30);
     --info: #0369a1;
-    --info-soft: #f0f9ff;
-    --info-border: #bae6fd;
+    --info-soft: rgba(3, 105, 161, 0.10);
+    --info-border: rgba(3, 105, 161, 0.30);
 
-    /* Category accents */
+    /* Category accents - the same soft-tint treatment as the status colours. */
     --cat-fruit: #0369a1;
-    --cat-fruit-soft: #e0f2fe;
-    --cat-vegetable: #047857;
-    --cat-vegetable-soft: #ecfdf5;
+    --cat-fruit-soft: rgba(3, 105, 161, 0.10);
+    --cat-vegetable: #166534;
+    --cat-vegetable-soft: rgba(22, 101, 52, 0.10);
     --cat-meat: #be123c;
-    --cat-meat-soft: #fff1f2;
-    --cat-cheese: #b45309;
-    --cat-cheese-soft: #fffbeb;
+    --cat-meat-soft: rgba(190, 18, 60, 0.10);
+    --cat-cheese: #92400e;
+    --cat-cheese-soft: rgba(146, 64, 14, 0.10);
     --cat-bread: #57534e;
-    --cat-bread-soft: #f5f5f4;
+    --cat-bread-soft: rgba(87, 83, 78, 0.10);
 
     /* Radii */
     --radius-xs: 4px;
@@ -82,19 +94,24 @@
     --radius-lg: 12px;
     --radius-pill: 999px;
 
-    /* Elevation */
-    --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.06);
-    --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
-    --shadow-md: 0 4px 10px -2px rgba(16, 24, 40, 0.1), 0 2px 4px -2px rgba(16, 24, 40, 0.06);
-    --shadow-lg: 0 16px 32px -12px rgba(16, 24, 40, 0.18);
+    /* Elevation - lifted with the ink colour rather than a separate blue-grey. */
+    --shadow-xs: 0 1px 2px rgba(5, 7, 12, 0.06);
+    --shadow-sm: 0 1px 3px rgba(5, 7, 12, 0.08), 0 1px 2px rgba(5, 7, 12, 0.04);
+    --shadow-md: 0 4px 10px -2px rgba(5, 7, 12, 0.10), 0 2px 4px -2px rgba(5, 7, 12, 0.06);
+    --shadow-lg: 0 16px 32px -12px rgba(5, 7, 12, 0.18);
 
     /* Focus */
-    --focus-ring: 0 0 0 3px rgba(67, 56, 202, 0.28);
+    --focus-ring: 0 0 0 3px rgba(33, 101, 78, 0.28);
     --focus-ring-danger: 0 0 0 3px rgba(185, 28, 28, 0.25);
 
-    /* Type */
-    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    /* Ambient wash painted behind the shell (see `body`): mint from the top right, a
+       cool blue from the bottom left, exactly as on the reference sites. */
+    --glow-a: rgba(12, 150, 106, 0.10);
+    --glow-b: rgba(96, 132, 196, 0.12);
+
+    /* Type - the Inter + JetBrains Mono pairing both reference sites load. */
+    --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
     --text-xs: 0.75rem;
     --text-sm: 0.8125rem;
     --text-base: 0.9375rem;
@@ -123,42 +140,43 @@
 :root[data-theme="dark"] {
     color-scheme: dark;
 
-    --canvas: #0b0f19;
-    --surface: #131826;
-    --surface-muted: #171d2b;
-    --surface-sunken: #1d2434;
-    --surface-inverse: #eef1f6;
+    /* ink-950 canvas through ink-800 sunken, as on the reference sites. */
+    --canvas: #05070c;
+    --surface: #0a0e15;
+    --surface-muted: #0d1219;
+    --surface-sunken: #111823;
+    --surface-inverse: #f2f5f3;
 
-    --border: #262f42;
-    --border-strong: #384258;
+    --border: rgba(255, 255, 255, 0.10);
+    --border-strong: rgba(255, 255, 255, 0.20);
 
-    --text: #eef1f6;
-    --text-muted: #a7b0c0;
-    --text-subtle: #7c869a;
-    --text-on-brand: #0b0f19;
+    --text: #e8ecea;
+    --text-muted: #8a93a0;
+    --text-subtle: #7c869a; /* lighter than fg-dim so the small caps labels stay AA (5.50:1) */
+    --text-on-brand: #05070c; /* ink on the pale mint fill (14.2:1) */
 
-    --brand: #a5b0ff;
-    --brand-hover: #bcc4ff;
-    --brand-soft: rgba(129, 140, 248, 0.14);
-    --brand-border: rgba(129, 140, 248, 0.32);
+    --brand: #8debc4;
+    --brand-hover: #b9f4da;
+    --brand-soft: rgba(141, 235, 196, 0.12);
+    --brand-border: rgba(141, 235, 196, 0.32);
 
-    --positive: #34d399;
-    --positive-soft: rgba(16, 185, 129, 0.13);
-    --positive-border: rgba(16, 185, 129, 0.3);
+    --positive: #4ade80;
+    --positive-soft: rgba(74, 222, 128, 0.13);
+    --positive-border: rgba(74, 222, 128, 0.30);
     --caution: #fbbf24;
     --caution-soft: rgba(251, 191, 36, 0.12);
-    --caution-border: rgba(251, 191, 36, 0.3);
+    --caution-border: rgba(251, 191, 36, 0.30);
     --danger: #f87171;
     --danger-soft: rgba(248, 113, 113, 0.12);
     --danger-border: rgba(248, 113, 113, 0.32);
-    --info: #60a5fa;
-    --info-soft: rgba(96, 165, 250, 0.12);
-    --info-border: rgba(96, 165, 250, 0.32);
+    --info: #7dd3fc;
+    --info-soft: rgba(125, 211, 252, 0.12);
+    --info-border: rgba(125, 211, 252, 0.32);
 
     --cat-fruit: #7dd3fc;
-    --cat-fruit-soft: rgba(56, 189, 248, 0.14);
-    --cat-vegetable: #6ee7b7;
-    --cat-vegetable-soft: rgba(16, 185, 129, 0.14);
+    --cat-fruit-soft: rgba(125, 211, 252, 0.14);
+    --cat-vegetable: #4ade80;
+    --cat-vegetable-soft: rgba(74, 222, 128, 0.14);
     --cat-meat: #fda4af;
     --cat-meat-soft: rgba(244, 63, 94, 0.14);
     --cat-cheese: #fcd34d;
@@ -171,14 +189,24 @@
     --shadow-md: 0 6px 14px -4px rgba(0, 0, 0, 0.55);
     --shadow-lg: 0 18px 36px -16px rgba(0, 0, 0, 0.7);
 
-    --focus-ring: 0 0 0 3px rgba(165, 176, 255, 0.35);
+    --focus-ring: 0 0 0 3px rgba(141, 235, 196, 0.35);
     --focus-ring-danger: 0 0 0 3px rgba(248, 113, 113, 0.32);
+
+    --glow-a: rgba(141, 235, 196, 0.07);
+    --glow-b: rgba(105, 140, 200, 0.06);
 }
 
 /* 2. Base and typography =================================================== */
 
 body {
+    /* The two radial washes are the reference sites' ambient light: mint bleeding in
+       from the top right, a cool blue from the bottom left. `fixed` keeps them pinned
+       to the viewport so they do not slide away as a long report page scrolls. */
+    background-attachment: fixed;
     background-color: var(--canvas);
+    background-image:
+        radial-gradient(1100px 520px at 78% -8%, var(--glow-a), transparent 65%),
+        radial-gradient(900px 480px at 8% 108%, var(--glow-b), transparent 70%);
     color: var(--text);
     font-family: var(--font-sans);
     font-size: var(--text-base);
@@ -268,6 +296,17 @@ code, kbd, samp {
 
 /* Tabular figures keep numeric columns aligned in tables and stat tiles. */
 .tnum { font-variant-numeric: tabular-nums; }
+
+/* Micro labels - section titles, stat labels, table heads, hero captions - are set in
+   the mono face, the app's counterpart to the `micro` treatment on the reference sites.
+   Nothing here is widened; only the family changes, so no label outgrows its tile. */
+.section-title,
+.stat-tile__label,
+.hero__meta-label,
+.item-row__label,
+.table > thead > tr > th {
+    font-family: var(--font-mono);
+}
 
 /* Semantic text helpers (avoid Bootstrap's !important colour utilities). */
 .text-muted-strong { color: var(--text-muted); }
@@ -588,9 +627,11 @@ code, kbd, samp {
 
 /* 4. Controls ============================================================== */
 
+/* Icon or spinner text drawn on a solid status fill: white reads on the deep light-theme
+   fills, the ink colour on the bright dark-theme ones. */
 :root { --text-on-status: #ffffff; }
 
-:root[data-theme="dark"] { --text-on-status: #10141c; }
+:root[data-theme="dark"] { --text-on-status: #05070c; }
 
 /* Buttons ------------------------------------------------------------------ */
 
@@ -764,7 +805,7 @@ code, kbd, samp {
 select.form-control {
     -webkit-appearance: none;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236b7280'%3E%3Cpath d='M8 11.5 3.5 7h9z'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%235b6472'%3E%3Cpath d='M8 11.5 3.5 7h9z'/%3E%3C/svg%3E");
     background-position: right 0.6rem center;
     background-repeat: no-repeat;
     background-size: 12px;
@@ -772,7 +813,7 @@ select.form-control {
 }
 
 :root[data-theme="dark"] select.form-control {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23a7b0c0'%3E%3Cpath d='M8 11.5 3.5 7h9z'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%238a93a0'%3E%3Cpath d='M8 11.5 3.5 7h9z'/%3E%3C/svg%3E");
 }
 
 .form-grid {
@@ -1316,9 +1357,13 @@ select.invalid,
     padding: var(--space-2) var(--space-3);
 }
 
-.table-success { --bs-table-bg: var(--positive-soft); --bs-table-color: var(--text); }
-.table-warning { --bs-table-bg: var(--caution-soft); --bs-table-color: var(--text); }
-.table-danger { --bs-table-bg: var(--danger-soft); --bs-table-color: var(--text); }
+/* Bootstrap 5.1 paints the variant tint through `--bs-table-bg`, but it also sets a
+   literal `color: #000` on the variant class. A direct declaration beats the colour
+   inherited from `.table`, so the cells went black - invisible in the dark theme. Both
+   halves have to be restated here. */
+.table-success { --bs-table-bg: var(--positive-soft); --bs-table-color: var(--text); color: var(--text); }
+.table-warning { --bs-table-bg: var(--caution-soft); --bs-table-color: var(--text); color: var(--text); }
+.table-danger { --bs-table-bg: var(--danger-soft); --bs-table-color: var(--text); color: var(--text); }
 
 /* 6. Motion and print ====================================================== */
 
@@ -1356,6 +1401,11 @@ select.invalid,
 }
 
 @media print {
+    /* The ambient wash is screen furniture; on paper it wastes ink and greys the page. */
+    body {
+        background-image: none;
+    }
+
     .app-sidebar,
     .app-topbar,
     .app-footer,
@@ -1656,3 +1706,902 @@ select.invalid,
 /* 9. Narrow form and confirmation panels ================================== */
 
 .panel--narrow { max-width: 620px; }
+
+/* 10. Charts ============================================================== */
+
+/* Every chart takes its colour from a class on the element rather than from the stylesheet, so the
+   same ring or bar can show categories, stock bands or statuses without the component knowing which
+   it is showing. The classes below map to the same tokens the chips use, without borrowing the
+   chips themselves: a chip sets a background, and a chart element needs the ink colour alone. */
+
+.chart--fruit { color: var(--cat-fruit); }
+.chart--vegetable { color: var(--cat-vegetable); }
+.chart--meat { color: var(--cat-meat); }
+.chart--cheese { color: var(--cat-cheese); }
+.chart--bread { color: var(--cat-bread); }
+.chart--brand { color: var(--brand); }
+.chart--positive { color: var(--positive); }
+.chart--caution { color: var(--caution); }
+.chart--danger { color: var(--danger); }
+.chart--info { color: var(--info); }
+.chart--neutral { color: var(--text-muted); }
+
+.chart {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin: 0;
+}
+
+/* The wrapper owns the size and the centring; the centre label is positioned over the ring. */
+.chart__plot {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    min-height: 168px;
+    position: relative;
+}
+
+.donut {
+    display: block;
+    height: 168px;
+    width: 168px;
+}
+
+.donut__track { stroke: var(--surface-sunken); stroke-width: 6; }
+
+.donut__segment {
+    stroke-width: 6;
+    transition: stroke-dasharray 0.4s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.chart__center {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    position: absolute;
+    text-align: center;
+}
+
+.chart__center-value {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+.chart__center-label {
+    color: var(--text-subtle);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.chart__legend {
+    display: grid;
+    gap: var(--space-2) var(--space-5);
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.chart__legend-item {
+    align-items: center;
+    display: flex;
+    font-size: var(--text-sm);
+    gap: var(--space-2);
+}
+
+.chart__swatch {
+    background-color: currentColor;
+    border-radius: var(--radius-xs);
+    flex: 0 0 auto;
+    height: 10px;
+    width: 10px;
+}
+
+.chart__legend-label { color: var(--text-muted); }
+
+.chart__legend-value {
+    color: var(--text);
+    font-weight: 500;
+    margin-left: auto;
+}
+
+/* Horizontal bars --------------------------------------------------------- */
+
+.bar-chart {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.bar-chart__row {
+    align-items: center;
+    display: grid;
+    gap: var(--space-3);
+    grid-template-columns: minmax(76px, 1fr) 2fr auto;
+}
+
+.bar-chart__label {
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bar-chart__track {
+    background-color: var(--surface-sunken);
+    border-radius: var(--radius-pill);
+    height: 8px;
+    overflow: hidden;
+}
+
+.bar-chart__fill {
+    background-color: currentColor;
+    border-radius: var(--radius-pill);
+    display: block;
+    height: 100%;
+    transition: width 0.4s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.bar-chart__value {
+    color: var(--text);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    min-width: 4.5rem;
+    text-align: right;
+}
+
+/* Sparkline --------------------------------------------------------------- */
+
+.sparkline {
+    display: block;
+    height: 30px;
+    width: 100%;
+}
+
+/* Holds the space a line would occupy, so a row without enough history does not change height. */
+.sparkline--empty {
+    border-bottom: 1px dashed var(--border-strong);
+    display: block;
+    height: 30px;
+}
+
+/* 11. Dashboard ============================================================ */
+
+/* A change against the previous period, shown next to the figure it belongs to. */
+.stat-tile__delta {
+    align-items: center;
+    display: flex;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    gap: var(--space-1);
+}
+
+/* A single value against a scale, for the health score. */
+.meter {
+    background-color: var(--surface-sunken);
+    border-radius: var(--radius-pill);
+    height: 10px;
+    overflow: hidden;
+}
+
+.meter__fill {
+    background-color: currentColor;
+    display: block;
+    height: 100%;
+    transition: width 0.4s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.health-score {
+    align-items: baseline;
+    display: flex;
+    gap: var(--space-3);
+}
+
+.health-score__grade {
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+
+/* Findings: what the score is made of, and what to do about it. */
+.findings {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.finding {
+    align-items: flex-start;
+    display: flex;
+    gap: var(--space-3);
+}
+
+.finding .icon { margin-top: 2px; }
+
+.finding__title {
+    color: var(--text);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    margin: 0;
+}
+
+.finding__detail {
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    margin: 0;
+}
+
+.finding--positive .icon { color: var(--positive); }
+.finding--information .icon { color: var(--info); }
+.finding--caution .icon { color: var(--caution); }
+.finding--warning .icon { color: var(--danger); }
+
+/* Activity feed: one line per recorded movement, newest first. */
+.timeline {
+    display: flex;
+    flex-direction: column;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.timeline__item {
+    align-items: baseline;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+}
+
+.timeline__item:last-child { border-bottom: 0; }
+
+.timeline__when {
+    color: var(--text-subtle);
+    flex: 0 0 auto;
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+.timeline__what {
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    min-width: 0;
+}
+
+.timeline__delta {
+    flex: 0 0 auto;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Marks figures the demonstration data produced rather than the visitor. */
+.generated-note {
+    color: var(--text-subtle);
+    font-size: var(--text-xs);
+    margin: 0;
+}
+
+/* 12. Catalogue filter bar ================================================ */
+
+.filter-bar {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+}
+
+.filter-bar__row {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+}
+
+.filter-bar__search {
+    flex: 1 1 260px;
+    min-width: 0;
+    position: relative;
+}
+
+/* The magnifier sits inside the field, so the control reads as one thing rather than a box and an
+   icon that happen to be next to each other. */
+.filter-bar__search .form-control { padding-left: 2.25rem; }
+
+.filter-bar__search-icon {
+    color: var(--text-subtle);
+    left: 0.7rem;
+    pointer-events: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.filter-bar__select {
+    flex: 0 1 auto;
+    width: auto;
+}
+
+.filter-bar__chips {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.filter-bar__group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.filter-bar__switch {
+    align-items: center;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    font-size: var(--text-sm);
+    gap: var(--space-2);
+}
+
+.form-control--sm {
+    font-size: var(--text-sm);
+    padding: 0.25rem 0.5rem;
+    width: auto;
+}
+
+/* A chip that acts as a toggle.
+   Colour is left to the category modifier for the selected state, so the off state is written with
+   :not() at a higher specificity rather than by setting a colour on the base class: that way selecting a
+   chip reveals the category's own ink instead of fighting it. */
+.chip--toggle {
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.chip--toggle:not(.chip--on) {
+    background-color: var(--surface-sunken);
+    color: var(--text-muted);
+}
+
+.chip--toggle:hover { border-color: var(--border-strong); }
+
+.chip--toggle.chip--on { border-color: currentColor; }
+
+/* 13. Restock worksheet =================================================== */
+
+/* The quantity field sits in a numeric column, so it stays narrow enough for the cost beside it to line
+   up down the table. */
+.quantity-input {
+    display: inline-block;
+    max-width: 5.5rem;
+    text-align: right;
+}
+
+/* The reason is prose, so it is allowed to be the widest column but not to push the table out of shape. */
+.reason-cell {
+    max-width: 24rem;
+    white-space: normal;
+}
+
+.reason-cell span { display: block; }
+
+/* 14. Command palette and shortcuts ======================================== */
+
+/* The top bar's palette control is a button dressed as the links beside it: the same size and colour, so the
+   bar keeps one row of controls, with the two keys standing in for the shortcut. */
+.topbar-link--button {
+    background: none;
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+    gap: 0.35rem;
+    padding: 0;
+}
+
+/* The backdrop dims the page and takes the click that closes the palette. Blurring what is behind it is what
+   makes the panel read as being in front of the page rather than part of it. */
+.palette-backdrop {
+    align-items: flex-start;
+    animation: palette-fade 0.12s ease-out;
+    backdrop-filter: blur(2px);
+    background-color: rgba(5, 7, 12, 0.42);
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    padding: 10vh var(--space-4) var(--space-4);
+    position: fixed;
+    z-index: 50;
+}
+
+@keyframes palette-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.palette {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    max-height: min(70vh, 34rem);
+    overflow: hidden;
+    width: min(100%, 34rem);
+}
+
+.palette__field {
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+}
+
+.palette__field--title { justify-content: space-between; }
+
+.palette__icon {
+    color: var(--text-muted);
+    flex: 0 0 auto;
+}
+
+/* No border of its own: the row it sits in already draws one, and a field inside a panel with its own outline
+   reads as a box in a box. */
+.palette__input {
+    background: none;
+    border: 0;
+    color: var(--text);
+    flex: 1 1 auto;
+    font-size: 1rem;
+    min-width: 0;
+    outline: none;
+}
+
+.palette__heading {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* A key reads as a key, including in the top bar and in prose where the same class marks up a shortcut. The
+   margin is what separates two keys written side by side, like Ctrl and K. */
+.palette__key {
+    background-color: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    line-height: 1.5;
+    margin-right: 0.2rem;
+    padding: 0.05rem 0.35rem;
+    white-space: nowrap;
+}
+
+.palette__results {
+    flex: 1 1 auto;
+    list-style: none;
+    margin: 0;
+    overflow-y: auto;
+    padding: var(--space-2);
+}
+
+/* Names on the left, the group they belong to on the right: a page and an item then read the same way
+   whichever kind of result is on the row. */
+.palette__result {
+    align-items: center;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    gap: var(--space-3);
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-3);
+}
+
+/* The highlighted row is the one Enter runs, so it has to be unmistakable at a glance. */
+.palette__result--selected { background-color: var(--brand-soft); }
+
+.palette__result--selected .palette__title { color: var(--brand); }
+
+.palette__result-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.palette__title {
+    color: var(--text);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.palette__subtitle {
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.palette__group {
+    color: var(--text-subtle);
+    flex: 0 0 auto;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.palette__empty {
+    color: var(--text-muted);
+    margin: 0;
+    padding: var(--space-6) var(--space-4);
+    text-align: center;
+}
+
+.palette__footer {
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 0.75rem;
+    gap: var(--space-4);
+    padding: var(--space-2) var(--space-4);
+}
+
+/* The shortcut list reuses the palette's panel, so only the rows inside it need drawing. */
+.shortcut-help { max-height: none; }
+
+.shortcut-list {
+    list-style: none;
+    margin: 0;
+    overflow-y: auto;
+    padding: var(--space-2);
+}
+
+.shortcut-list__item {
+    align-items: center;
+    display: flex;
+    gap: var(--space-4);
+    padding: var(--space-2) var(--space-3);
+}
+
+/* A fixed key column, so the descriptions line up however many keys a row has. */
+.shortcut-list__keys {
+    display: flex;
+    flex: 0 0 9.5rem;
+    gap: 0.25rem;
+}
+
+.shortcut-list__what {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+@media (max-width: 640px) {
+    .shortcut-list__item {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: var(--space-1);
+    }
+
+    .shortcut-list__keys { flex-basis: auto; }
+}
+
+/* The top bar is the tightest row in the application: at desktop widths it already carries the note, two
+   links and the theme control, and narrower still it drops them one by one. The shortcut hint is the piece
+   that can go first, because the shortcut itself keeps working and the "?" list spells it out. */
+@media (max-width: 1199.98px) {
+    .topbar-link--button .palette__key { display: none; }
+}
+
+@media (max-width: 420px) {
+    /* At the narrowest sizes only the magnifier is left, which is why the button keeps its aria-label. It
+       keeps the width of the icon controls beside it so the tap target does not shrink with the label. */
+    .topbar-link--button {
+        justify-content: center;
+        min-height: 34px;
+        min-width: 34px;
+    }
+
+    .topbar-link--button span { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .palette-backdrop { animation: none; }
+}
+
+/* 15. Selection and density =============================================== */
+
+/* The bar above the list is quiet until something is selected: it always says how much is on screen, and the
+   actions appear only when there is something to act on, so the idle state is not a row of dead buttons. */
+.bulk-bar {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    justify-content: space-between;
+    margin-bottom: var(--space-3);
+    min-height: 34px;
+}
+
+.bulk-bar__select {
+    align-items: center;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    font-size: var(--text-sm);
+    gap: var(--space-2);
+}
+
+.bulk-bar__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+/* The row checkbox sits in the row's head, which is already a wrapping flex line, so it lines up with the
+   name and its chips without the row needing a second layout. */
+.row-pick {
+    flex: 0 0 auto;
+    height: 16px;
+    margin: 0;
+    width: 16px;
+}
+
+/* An archived row is still listed when the filter asks for it, and is marked plainly rather than dimmed: a
+   faded row would fail the contrast the rest of the list is held to. */
+.item-row--archived { background-color: var(--surface-sunken); }
+
+/* Compact density. The point is to fit more rows on a screen, so the padding and the figures line go rather
+   than the type: shrinking the type would trade the thing being read for the thing being found. */
+.item-list--compact .item-row {
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-2) var(--space-5);
+}
+
+.item-list--compact .item-row__figures { margin-top: 0; }
+
+.item-list--compact .item-row__aside { gap: var(--space-2); }
+
+/* 16. Activity timeline ================================================== */
+
+/* A tighter stat row for a list's own summary, where the figures describe one list rather than a page. */
+.stat-grid--tight {
+    gap: var(--space-3);
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    margin-bottom: var(--space-4);
+}
+
+.stat-tile--sm {
+    border-radius: var(--radius-md);
+    gap: 0;
+    padding: var(--space-3) var(--space-4);
+}
+
+.stat-tile--sm .stat-tile__value { font-size: var(--text-lg); }
+
+/* Days are the unit the timeline is read in, so a day is its own block with a heading rather than one long
+   list with date separators inside it. */
+.timeline-day { margin-bottom: var(--space-6); }
+
+.timeline-day__head {
+    align-items: baseline;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    justify-content: space-between;
+    padding-bottom: var(--space-2);
+}
+
+.timeline-day__date {
+    align-items: center;
+    display: flex;
+    font-size: var(--text-base);
+    font-weight: 600;
+    gap: var(--space-2);
+    margin: 0;
+}
+
+.timeline-day__meta {
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+}
+
+/* The spine is drawn by the list rather than by a border on each row, so it does not break between entries.
+   The markers are positioned against the padding they sit in, which is what keeps them on the line. */
+.timeline {
+    border-left: 2px solid var(--border);
+    list-style: none;
+    margin: var(--space-2) 0 0 var(--space-2);
+    padding: 0 0 0 var(--space-5);
+}
+
+.timeline__item {
+    padding: var(--space-2) 0;
+    position: relative;
+}
+
+.timeline__marker {
+    background-color: var(--text-subtle);
+    border-radius: 50%;
+    height: 9px;
+    left: calc(-1 * var(--space-5) - 5.5px);
+    position: absolute;
+    top: calc(var(--space-2) + 6px);
+    width: 9px;
+}
+
+.timeline__marker--positive { background-color: var(--positive); }
+.timeline__marker--caution { background-color: var(--caution); }
+.timeline__marker--info { background-color: var(--info); }
+
+.timeline__head {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.timeline__name { font-weight: 500; }
+
+.timeline__delta {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+/* Pushed to the end of the line so the times form a column down the right of the timeline. */
+.timeline__time {
+    color: var(--text-subtle);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    margin-left: auto;
+}
+
+.timeline__detail {
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    margin: var(--space-1) 0 0;
+}
+
+/* 17. Preferences ======================================================= */
+
+/* A group of related choices. The legend is styled as a form label because that is what it is: the
+   heading over a column of controls. */
+.field-set {
+    border: 0;
+    margin: 0 0 var(--space-4);
+    padding: 0;
+}
+
+.field-set__legend {
+    color: var(--text-muted);
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    margin-bottom: var(--space-3);
+    padding: 0;
+}
+
+/* A labelled control with a line of explanation under it. Bootstrap's own form-check reserves space for a
+   floated input it never gets here, so the padding is taken back and the row is laid out as a flex line. */
+.form-check {
+    align-items: flex-start;
+    display: flex;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+    padding-left: 0;
+}
+
+.form-check input {
+    flex: 0 0 auto;
+    height: 16px;
+    margin: 2px 0 0;
+    width: 16px;
+}
+
+.form-check strong {
+    display: block;
+    font-weight: 600;
+}
+
+.field-hint {
+    color: var(--text-subtle);
+    display: block;
+    font-size: var(--text-sm);
+    margin-top: var(--space-1);
+}
+
+.field {
+    display: block;
+    margin-bottom: var(--space-4);
+}
+
+.field__label {
+    color: var(--text-muted);
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    margin-bottom: var(--space-2);
+}
+
+.rule {
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: var(--space-4) 0;
+}
+
+/* Reduced motion, asked for in the preferences rather than by the operating system. Everything is stopped
+   except opacity, so a control that appears still appears: it just does not travel across the screen. */
+.app-shell--no-motion *,
+.app-shell--no-motion *::before,
+.app-shell--no-motion *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+}
+
+/* 18. Suppliers ========================================================== */
+
+/* The call list is a short ordered set of names with one reason each, so it reads as a list rather than as a
+   table: it is meant to be worked down, not compared across. */
+.supplier-call-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.supplier-call-list__item {
+    align-items: baseline;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    justify-content: space-between;
+    padding: var(--space-3) var(--space-5);
+}
+
+.supplier-call-list__item:last-child { border-bottom: 0; }
+
+.supplier-call-list__name { font-weight: 600; }
+
+.supplier-call-list__detail {
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+}
+
+/* Rows the visitor has opened are marked, so it is clear which supplier the list below belongs to. */
+.table__row--selected { background-color: var(--brand-soft); }
+
+.table__row--selected > * { font-weight: 600; }
+
+
+
+
+
+

@@ -1,0 +1,401 @@
+@page "/restock"
+@implements IDisposable
+@inject IGroceryService GroceryService
+@inject IInventoryAnalyticsService Analytics
+@inject IActivityService Activity
+@inject ICatalogueHistoryService History
+
+<PageTitle>Restock worksheet</PageTitle>
+
+<header class="page-header">
+    <div class="page-header__text">
+        <h1>Restock worksheet</h1>
+        <p class="page-subtitle">
+            What to order, how much and why. Where there is no history the quantities follow each item's own
+            reorder point; where there is, they come from measured demand and the supplier's lead time.
+        </p>
+    </div>
+
+    <div class="page-actions">
+        <button type="button" class="btn btn-secondary" @onclick="UndoAsync" disabled="@(!History.CanUndo)">
+            <Icon Name="arrow-counterclockwise" />
+            @if (History.CanUndo)
+            {
+                <span>Undo @History.NextUndoLabel</span>
+            }
+            else
+            {
+                <span>Nothing to undo</span>
+            }
+        </button>
+    </div>
+</header>
+
+@if (!string.IsNullOrEmpty(statusMessage))
+{
+    <div class="alert alert--@(statusIsError ? "danger" : "info")">
+        <p class="alert__title">
+            <Icon Name="@(statusIsError ? "exclamation-triangle" : "check2-circle")" CssClass="icon-sm" />
+            @statusMessage
+        </p>
+    </div>
+}
+
+@if (catalogue is null)
+{
+    <div class="loading-state">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Working out what needs ordering…
+    </div>
+}
+else if (lines.Count == 0)
+{
+    <div class="panel">
+        <div class="empty-state">
+            <Icon Name="truck" CssClass="empty-state__icon" Size="24" />
+            <h2>Nothing needs ordering</h2>
+            <p>
+                Every item is above the level it should be reordered at, so there is nothing to put on a
+                worksheet. It will fill up as stock is sold down.
+            </p>
+            <div class="empty-state__actions">
+                <a class="btn btn-primary" href="/groceries">Open the catalogue</a>
+                <a class="btn btn-secondary" href="/dashboard">Back to the dashboard</a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="stat-grid">
+        <div class="stat-tile stat-tile--brand">
+            <span class="stat-tile__label"><Icon Name="truck" CssClass="icon-sm" /> Lines to order</span>
+            <span class="stat-tile__value">@lines.Count</span>
+            <span class="stat-tile__meta">@SelectedCount of them selected</span>
+        </div>
+
+        <div class="stat-tile">
+            <span class="stat-tile__label"><Icon Name="boxes" CssClass="icon-sm" /> Units selected</span>
+            <span class="stat-tile__value">@SelectedUnits.ToString("N0")</span>
+            <span class="stat-tile__meta">Across @selectedSuppliers supplier@(selectedSuppliers == 1 ? string.Empty : "s")</span>
+        </div>
+
+        <div class="stat-tile">
+            <span class="stat-tile__label"><Icon Name="graph-up" CssClass="icon-sm" /> Cost of the order</span>
+            <span class="stat-tile__value">@SelectedCost.ToString("C0")</span>
+            <span class="stat-tile__meta">Rises to @RetailValueOfOrder.ToString("C0") at retail</span>
+        </div>
+
+        <div class="stat-tile">
+            <span class="stat-tile__label"><Icon Name="activity" CssClass="icon-sm" /> Based on measured demand</span>
+            <span class="stat-tile__value">@measuredCount</span>
+            <span class="stat-tile__meta">
+                @(lines.Count - measuredCount) use the item's own reorder point instead
+            </span>
+        </div>
+    </div>
+
+    <div class="tag-cloud mb-4">
+        @foreach (var group in bySupplier)
+        {
+            <span class="chip chip--neutral">
+                @group.Supplier · @group.Lines line@(group.Lines == 1 ? string.Empty : "s") ·
+                @group.Cost.ToString("C0")
+            </span>
+        }
+    </div>
+
+    <section class="panel">
+        <div class="panel__header">
+            <h2 class="panel__title"><Icon Name="truck" /> The worksheet</h2>
+            <div class="row-actions">
+                <button type="button" class="btn btn-ghost btn-sm" @onclick="SelectAll">Select all</button>
+                <button type="button" class="btn btn-ghost btn-sm" @onclick="SelectNone">Select none</button>
+            </div>
+        </div>
+
+        <div class="panel__body panel__body--flush">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th scope="col">
+                                <span class="visually-hidden">Include in the order</span>
+                            </th>
+                            <th scope="col">Item</th>
+                            <th scope="col">Supplier</th>
+                            <th scope="col">State</th>
+                            <th scope="col">On hand</th>
+                            <th scope="col">Order</th>
+                            <th scope="col">Cost</th>
+                            <th scope="col">Why</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var line in lines)
+                        {
+                            <tr>
+                                <td>
+                                    <input type="checkbox"
+                                           checked="@line.Selected"
+                                           @onchange="() => line.Selected = !line.Selected"
+                                           aria-label="@($"Include {line.Suggestion.Item.Name} in the order")" />
+                                </td>
+                                <td>
+                                    <a href="/groceries/@line.Suggestion.Item.Id">@line.Suggestion.Item.Name</a>
+                                    <span class="item-row__id">@line.Suggestion.Item.Sku</span>
+                                </td>
+                                <td class="text-muted-strong">@line.Suggestion.Supplier</td>
+                                <td>
+                                    <span class="chip @StatusChip(line.Suggestion.Status)">
+                                        @StatusLabel(line.Suggestion.Status)
+                                    </span>
+                                </td>
+                                <td class="num">
+                                    @line.Suggestion.Item.Stock
+                                    <span class="text-subtle">/ @line.Suggestion.ReorderPoint</span>
+                                </td>
+                                <td class="num">
+                                    <input class="form-control form-control--sm quantity-input"
+                                           type="number"
+                                           min="0"
+                                           value="@line.Quantity"
+                                           @onchange="args => SetQuantity(line, args)"
+                                           aria-label="@($"Quantity to order for {line.Suggestion.Item.Name}")" />
+                                </td>
+                                <td class="num">@((line.Quantity * line.Suggestion.EstimatedUnitCost).ToString("C2"))</td>
+                                <td class="reason-cell">
+                                    <span class="text-muted-strong">@line.Suggestion.Reason</span>
+                                    @if (CoverFor(line) is { } cover)
+                                    {
+                                        <span class="text-subtle">
+                                            About @cover.ToString("0.#") days of cover left.
+                                        </span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="panel__footer">
+            <div class="form-actions">
+                <button type="button"
+                        class="btn btn-primary"
+                        @onclick="ApplyAsync"
+                        disabled="@(isApplying || SelectedCount == 0)">
+                    @if (isApplying)
+                    {
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    }
+                    <Icon Name="truck" /> Order @SelectedCount line@(SelectedCount == 1 ? string.Empty : "s")
+                </button>
+                <a class="btn btn-secondary" href="/groceries">Cancel</a>
+            </div>
+        </div>
+    </section>
+
+    <p class="generated-note mt-3">
+        Applying the worksheet adds the quantities to stock, records each line in the activity log and counts
+        as one step you can undo.
+    </p>
+}
+
+@code {
+    private List<GroceryItemDto>? catalogue;
+    private List<RestockLine> lines = new();
+    private string? statusMessage;
+    private bool statusIsError;
+    private bool isApplying;
+
+    /// <summary>
+    /// One row of the worksheet: a suggestion, plus what the visitor decided about it.
+    /// </summary>
+    private sealed class RestockLine
+    {
+        public ReorderSuggestion Suggestion { get; init; } = new();
+
+        public bool Selected { get; set; } = true;
+
+        /// <summary>Units to order. Starts at the suggestion and can be changed before ordering.</summary>
+        public int Quantity { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // The worksheet follows the history as well as its own apply button: an undo pressed from the top bar
+        // or from the keyboard puts the stock back, and the suggestions have to describe the stock that is
+        // there now rather than the stock that was there when the order was placed.
+        History.Changed += OnHistoryChanged;
+
+        await LoadAsync();
+    }
+
+    public void Dispose()
+    {
+        History.Changed -= OnHistoryChanged;
+    }
+
+    private void OnHistoryChanged() => _ = InvokeAsync(async () =>
+    {
+        try
+        {
+            await LoadAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"The worksheet could not be reloaded after an undo: {ex.Message}");
+        }
+    });
+
+    private async Task LoadAsync()
+    {
+        var now = DateTime.UtcNow;
+
+        catalogue = (await GroceryService.GetAllGroceriesAsync()).ToList();
+
+        var entries = await Activity.GetBetweenAsync(now.AddDays(-30), now);
+        var suggestions = Analytics.SuggestReorders(catalogue, entries, now);
+
+        // Rows the visitor had already unticked stay unticked after a reload. Quantities are taken fresh,
+        // because a second order for the same line should be based on the stock level now.
+        var unticked = lines
+            .Where(line => !line.Selected)
+            .Select(line => line.Suggestion.Item.Id)
+            .ToHashSet();
+
+        lines = suggestions
+            .Select(suggestion => new RestockLine
+            {
+                Suggestion = suggestion,
+                Quantity = suggestion.SuggestedQuantity,
+                Selected = !unticked.Contains(suggestion.Item.Id)
+            })
+            .ToList();
+    }
+
+    /// <summary>The rows that will be ordered, recomputed on each access rather than cached.</summary>
+    private IEnumerable<RestockLine> Chosen => lines.Where(line => line.Selected && line.Quantity > 0);
+
+    private int SelectedCount => Chosen.Count();
+
+    private int SelectedUnits => Chosen.Sum(line => line.Quantity);
+
+    private decimal SelectedCost => Chosen.Sum(line => line.Quantity * line.Suggestion.EstimatedUnitCost);
+
+    private decimal RetailValueOfOrder => Chosen.Sum(line => line.Quantity * line.Suggestion.Item.Price);
+
+    private int selectedSuppliers =>
+        Chosen.Select(line => line.Suggestion.Supplier).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+
+    private int measuredCount => lines.Count(line => line.Suggestion.UsesMeasuredDemand);
+
+    private IEnumerable<(string Supplier, int Lines, decimal Cost)> bySupplier => lines
+        .GroupBy(line => line.Suggestion.Supplier, StringComparer.OrdinalIgnoreCase)
+        .Select(group => (
+            Supplier: group.Key,
+            Lines: group.Count(),
+            Cost: group.Sum(line => line.Quantity * line.Suggestion.EstimatedUnitCost)))
+        .OrderByDescending(group => group.Cost);
+
+    /// <summary>
+    /// How long the stock on hand lasts at the measured rate, or null where nothing was measured.
+    /// </summary>
+    private static double? CoverFor(RestockLine line) =>
+        line.Suggestion.UsesMeasuredDemand && line.Suggestion.UnitsPerDay > 0
+            ? line.Suggestion.Item.Stock / line.Suggestion.UnitsPerDay
+            : null;
+
+    private void SelectAll()
+    {
+        foreach (var line in lines)
+        {
+            line.Selected = true;
+        }
+    }
+
+    private void SelectNone()
+    {
+        foreach (var line in lines)
+        {
+            line.Selected = false;
+        }
+    }
+
+    private void SetQuantity(RestockLine line, ChangeEventArgs args)
+    {
+        line.Quantity = int.TryParse(args.Value?.ToString(), out var quantity) ? Math.Max(0, quantity) : 0;
+    }
+
+    private async Task ApplyAsync()
+    {
+        var quantities = Chosen.ToDictionary(line => line.Suggestion.Item.Id, line => line.Quantity);
+
+        if (quantities.Count == 0)
+        {
+            return;
+        }
+
+        var cost = Chosen.Sum(line => line.Quantity * line.Suggestion.EstimatedUnitCost);
+
+        isApplying = true;
+        statusMessage = null;
+        statusIsError = false;
+
+        try
+        {
+            // One labelled step, so the whole order goes back with a single undo rather than twenty.
+            await History.RunAsync(
+                $"Restocking {quantities.Count} lines",
+                () => GroceryService.ApplyRestockAsync(quantities));
+
+            statusMessage =
+                $"Ordered {quantities.Count} lines for {cost:C0}. The stock is on the shelf now, and one undo puts it back.";
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            statusMessage = "The order could not be written to browser storage. Please try again.";
+            statusIsError = true;
+            Console.WriteLine($"Error applying the restock: {ex.Message}");
+        }
+        finally
+        {
+            isApplying = false;
+        }
+    }
+
+    private async Task UndoAsync()
+    {
+        var label = History.NextUndoLabel;
+
+        if (!await History.UndoAsync())
+        {
+            return;
+        }
+
+        statusMessage = $"Put it back: {label}.";
+        statusIsError = false;
+        await LoadAsync();
+    }
+
+    private static string StatusChip(StockStatus status) => status switch
+    {
+        StockStatus.OutOfStock => "chip--danger",
+        StockStatus.Critical or StockStatus.Low => "chip--caution",
+        StockStatus.Overstock => "chip--neutral",
+        _ => "chip--positive"
+    };
+
+    private static string StatusLabel(StockStatus status) => status switch
+    {
+        StockStatus.OutOfStock => "Out of stock",
+        StockStatus.Critical => "Nearly out",
+        StockStatus.Low => "At the threshold",
+        StockStatus.Overstock => "Overstocked",
+        _ => "Covered"
+    };
+}

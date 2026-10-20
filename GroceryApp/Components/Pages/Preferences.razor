@@ -1,0 +1,247 @@
+@page "/preferences"
+@inject IPreferenceService PreferenceService
+
+<PageTitle>Preferences</PageTitle>
+
+@* Preferences, kept apart from the catalogue: restoring the demo data never resets how the application looks
+   or behaves, which is why they live under their own storage key.
+
+   Everything here has an effect that can be seen on the page it applies to, so nothing on this screen is a
+   setting that does nothing. The shell listens for a change, so saving takes effect without a reload. *@
+
+<header class="page-header">
+    <div class="page-header__text">
+        <h1>Preferences</h1>
+        <p class="page-subtitle">
+            These are stored in this browser, and restoring the demo data does not reset them.
+        </p>
+    </div>
+
+    <div class="page-actions">
+        <button type="button" class="btn btn-secondary" @onclick="ResetAsync" disabled="@isBusy">
+            <Icon Name="arrow-counterclockwise" /> Back to the defaults
+        </button>
+    </div>
+</header>
+
+@if (!isLoaded)
+{
+    <div class="loading-state">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Reading your preferences…
+    </div>
+}
+else
+{
+    @if (statusMessage is not null)
+    {
+        <div class="alert alert--positive" role="status">
+            <p class="alert__title">@statusMessage</p>
+        </div>
+    }
+
+    <section class="panel panel--narrow">
+        <div class="panel__header">
+            <h2 class="panel__title"><Icon Name="sliders" /> How the catalogue is shown</h2>
+        </div>
+
+        <div class="panel__body">
+            <fieldset class="field-set">
+                <legend class="field-set__legend">Row density</legend>
+
+                @foreach (var density in Enum.GetValues<TableDensity>())
+                {
+                    <label class="form-check">
+                        <input type="radio"
+                               name="density"
+                               value="@density"
+                               checked="@(draft.Density == density)"
+                               @onchange="() => SetDensity(density)" />
+                        <span>
+                            <strong>@density</strong>
+                            <span class="field-hint">
+                                @(density == TableDensity.Compact
+                                    ? "Tighter rows, so more of the catalogue fits on a screen."
+                                    : "The default spacing, with the figures on their own line.")
+                            </span>
+                        </span>
+                    </label>
+                }
+            </fieldset>
+
+            <hr class="rule" />
+
+            <label class="form-check">
+                <input type="checkbox"
+                       checked="@draft.ShowArchived"
+                       @onchange="OnShowArchivedChanged" />
+                <span>
+                    <strong>Include archived items by default</strong>
+                    <span class="field-hint">
+                        A link that carries its own filter is always taken as written; this is what the
+                        catalogue starts from when you arrive without one.
+                    </span>
+                </span>
+            </label>
+
+            <label class="form-check">
+                <input type="checkbox"
+                       checked="@draft.ConfirmBeforeDelete"
+                       @onchange="OnConfirmBeforeDeleteChanged" />
+                <span>
+                    <strong>Ask before deleting from the list</strong>
+                    <span class="field-hint">
+                        With this off, deleting a row in the catalogue happens straight away. It is still one
+                        undoable step, and deleting a whole selection always asks first.
+                    </span>
+                </span>
+            </label>
+
+            <label class="form-check">
+                <input type="checkbox"
+                       checked="@draft.ReduceMotion"
+                       @onchange="OnReduceMotionChanged" />
+                <span>
+                    <strong>Reduce motion</strong>
+                    <span class="field-hint">
+                        Turns off the page transitions and the chart animations, on top of the setting your
+                        operating system already reports.
+                    </span>
+                </span>
+            </label>
+        </div>
+    </section>
+
+    <section class="panel panel--narrow">
+        <div class="panel__header">
+            <h2 class="panel__title"><Icon Name="house-door-fill" /> Where the app starts</h2>
+        </div>
+
+        <div class="panel__body">
+            <label class="field">
+                <span class="field__label">Landing page</span>
+                <select class="form-control" @onchange="OnLandingPageChanged">
+                    @foreach (var route in LandingPages)
+                    {
+                        <option value="@route.Href" selected="@(draft.LandingPage == route.Href)">@route.Label</option>
+                    }
+                </select>
+                <span class="field-hint">
+                    The logo in the sidebar links here, and it is where the app returns after the demo data is
+                    restored.
+                </span>
+            </label>
+        </div>
+    </section>
+
+    <div class="row-actions mt-3">
+        <button type="button" class="btn btn-primary" @onclick="SaveAsync" disabled="@(!hasChanges || isBusy)">
+            Save preferences
+        </button>
+        <a class="btn btn-ghost" href="/groceries">See the catalogue</a>
+    </div>
+}
+
+@code {
+    private static readonly (string Href, string Label)[] LandingPages =
+    {
+        ("/", "Home"),
+        ("/dashboard", "Dashboard"),
+        ("/groceries", "Groceries"),
+        ("/restock", "Restock"),
+        ("/reports", "Reports"),
+        ("/activity", "Activity")
+    };
+
+    private UserPreferences draft = new();
+    private bool isLoaded;
+    private bool isBusy;
+    private string? statusMessage;
+
+    /// <summary>
+    /// True when the draft differs from what is stored, which is what enables the save button.
+    /// </summary>
+    private bool hasChanges =>
+        draft.Density != PreferenceService.Current.Density ||
+        draft.ShowArchived != PreferenceService.Current.ShowArchived ||
+        draft.ConfirmBeforeDelete != PreferenceService.Current.ConfirmBeforeDelete ||
+        draft.ReduceMotion != PreferenceService.Current.ReduceMotion ||
+        draft.LandingPage != PreferenceService.Current.LandingPage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PreferenceService.LoadAsync();
+
+        // Editing a copy: nothing takes effect until it is saved, so half a change is never applied.
+        draft = Copy(PreferenceService.Current);
+        isLoaded = true;
+    }
+
+    private static UserPreferences Copy(UserPreferences source) => new()
+    {
+        LandingPage = source.LandingPage,
+        Density = source.Density,
+        ConfirmBeforeDelete = source.ConfirmBeforeDelete,
+        ReduceMotion = source.ReduceMotion,
+        ShowArchived = source.ShowArchived
+    };
+
+    private void SetDensity(TableDensity density) => draft.Density = density;
+
+    private void OnShowArchivedChanged(ChangeEventArgs args) => draft.ShowArchived = args.Value is true;
+
+    private void OnConfirmBeforeDeleteChanged(ChangeEventArgs args) => draft.ConfirmBeforeDelete = args.Value is true;
+
+    private void OnReduceMotionChanged(ChangeEventArgs args) => draft.ReduceMotion = args.Value is true;
+
+    private void OnLandingPageChanged(ChangeEventArgs args)
+    {
+        var href = args.Value?.ToString();
+
+        if (!string.IsNullOrWhiteSpace(href))
+        {
+            draft.LandingPage = href;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        isBusy = true;
+
+        try
+        {
+            // The shell is listening for this, so motion, density and the landing page all follow from here
+            // without the page having to know who cares.
+            await PreferenceService.SaveAsync(Copy(draft));
+
+            statusMessage = "Saved. These apply from now on, in this browser.";
+        }
+        catch (Exception ex)
+        {
+            statusMessage = null;
+            Console.WriteLine($"Error saving preferences: {ex.Message}");
+        }
+
+        isBusy = false;
+    }
+
+    private async Task ResetAsync()
+    {
+        isBusy = true;
+
+        try
+        {
+            await PreferenceService.ResetAsync();
+
+            draft = Copy(PreferenceService.Current);
+            statusMessage = "Back to the defaults.";
+        }
+        catch (Exception ex)
+        {
+            statusMessage = null;
+            Console.WriteLine($"Error resetting preferences: {ex.Message}");
+        }
+
+        isBusy = false;
+    }
+}

@@ -12,7 +12,11 @@ namespace GroceryApp.Data;
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     PropertyNameCaseInsensitive = true,
     WriteIndented = false,
-    Converters = new[] { typeof(JsonStringEnumConverter<Category>) })]
+    Converters = new[]
+    {
+        typeof(JsonStringEnumConverter<Category>),
+        typeof(JsonStringEnumConverter<UnitOfMeasure>)
+    })]
 [JsonSerializable(typeof(List<GroceryItem>))]
 [JsonSerializable(typeof(List<SeedGroceryItem>))]
 internal sealed partial class GroceryJsonContext : JsonSerializerContext

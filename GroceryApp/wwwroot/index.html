@@ -23,6 +23,12 @@
         })();
     </script>
     <base href="/" />
+    <!-- Inter for text and JetBrains Mono for the technical labels: the pairing both house
+         sites load. If the request fails the CSS falls back to the system faces, so the
+         first paint and an offline start are unaffected. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" />
     <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="app.css" />
     <link rel="icon" type="image/png" sizes="64x64" href="favicon.png?v=2" />
@@ -47,10 +53,10 @@
            for app.css, and themed with prefers-color-scheme to avoid a brightness jump. */
         .boot {
             align-items: center;
-            color: #4a5464;
+            color: #5b6472;
             display: flex;
             flex-direction: column;
-            font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
             gap: 0.6rem;
             justify-content: center;
             min-height: 70vh;
@@ -59,7 +65,7 @@
 
         .boot__mark {
             align-items: center;
-            background-color: #4338ca;
+            background-color: #21654e;
             border-radius: 10px;
             color: #ffffff;
             display: flex;
@@ -69,7 +75,7 @@
         }
 
         .boot__title {
-            color: #101828;
+            color: #1c232b;
             font-size: 1.0625rem;
             font-weight: 600;
             margin: 0;
@@ -82,7 +88,7 @@
 
         .boot__bar {
             animation: boot-progress 1.2s ease-in-out infinite;
-            background-color: #4338ca;
+            background-color: #21654e;
             border-radius: 999px;
             height: 3px;
             margin-top: 0.4rem;
@@ -96,10 +102,10 @@
 
         /* The theme attribute is set by the inline script above, so the first paint already matches
            the resolved theme (explicit choice or the system setting). */
-        html[data-theme="dark"] .boot { color: #a7b0c0; }
-        html[data-theme="dark"] .boot__mark { background-color: #a5b0ff; color: #0b0f19; }
-        html[data-theme="dark"] .boot__title { color: #eef1f6; }
-        html[data-theme="dark"] .boot__bar { background-color: #a5b0ff; }
+        html[data-theme="dark"] .boot { color: #8a93a0; }
+        html[data-theme="dark"] .boot__mark { background-color: #8debc4; color: #05070c; }
+        html[data-theme="dark"] .boot__title { color: #e8ecea; }
+        html[data-theme="dark"] .boot__bar { background-color: #8debc4; }
 
         @media (prefers-reduced-motion: reduce) {
             .boot__bar { animation: none; opacity: 0.6; transform: none; }
@@ -131,6 +137,8 @@
         </button>
     </div>
     <script src="theme.js"></script>
+    <script src="storage.js"></script>
+    <script src="keyboard.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="sortable-table.js"></script>
     <script src="file-download.js"></script>

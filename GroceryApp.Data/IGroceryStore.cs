@@ -29,4 +29,15 @@ public interface IGroceryStore
     /// </summary>
     /// <returns>A task that represents the asynchronous operation.</returns>
     Task ClearAsync();
+
+    /// <summary>
+    /// Measures the persisted catalogue.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the payload length in characters, or 0 when nothing is stored.</returns>
+    /// <remarks>
+    /// The catalogue is a single document written whole, so its size is the size of that document. Diagnostics
+    /// asks for this because the catalogue is usually the largest thing the application has stored, and a
+    /// storage report that left out the biggest entry would be worse than no report.
+    /// </remarks>
+    Task<int> SizeAsync();
 }

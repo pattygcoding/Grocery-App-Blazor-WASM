@@ -1,0 +1,206 @@
+@inject ICommandIndexService Palette
+@inject NavigationManager Navigation
+
+@* The command palette: one place to reach any page, any item and the handful of actions worth offering
+   without hunting for them. Arrow keys move through the results, Enter runs the selected one and Escape
+   closes it, so the whole thing is usable without touching the mouse.
+   The search itself lives in ICommandIndexService, which is what makes the ranking testable. *@
+@if (Open)
+{
+    <div class="palette-backdrop" @onclick="CloseAsync">
+        <div class="palette"
+             role="dialog"
+             aria-modal="true"
+             aria-label="Command palette"
+             @onclick:stopPropagation="true">
+            <div class="palette__field">
+                <Icon Name="search" CssClass="palette__icon" />
+                <input class="palette__input"
+                       type="text"
+                       placeholder="Search pages, items and actions"
+                       value="@query"
+                       aria-label="Search the application"
+                       aria-controls="palette-results"
+                       @oninput="OnQueryInput"
+                       @onkeydown="OnKeyDown"
+                       @ref="inputElement" />
+                <kbd class="palette__key">Esc</kbd>
+            </div>
+
+            @if (results.Count == 0)
+            {
+                <p class="palette__empty">
+                    Nothing matches <strong>@query</strong>. Try a page name, an item, or "undo".
+                </p>
+            }
+            else
+            {
+                <ul id="palette-results" class="palette__results" role="listbox" aria-label="Results">
+                    @for (var index = 0; index < results.Count; index++)
+                    {
+                        var command = results[index];
+                        var isSelected = index == selectedIndex;
+
+                        <li class="palette__result @(isSelected ? "palette__result--selected" : null)"
+                            role="option"
+                            aria-selected="@(isSelected ? "true" : "false")"
+                            @onclick="() => RunAsync(command)">
+                            <span class="palette__result-text">
+                                <span class="palette__title">@command.Title</span>
+                                <span class="palette__subtitle">@command.Subtitle</span>
+                            </span>
+                            <span class="palette__group">@command.Group</span>
+                        </li>
+                    }
+                </ul>
+            }
+
+            <div class="palette__footer">
+                <span><kbd class="palette__key">↑</kbd><kbd class="palette__key">↓</kbd> to move</span>
+                <span><kbd class="palette__key">Enter</kbd> to open</span>
+                <span><kbd class="palette__key">?</kbd> for all shortcuts</span>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>Whether the palette is showing. The layout owns this.</summary>
+    [Parameter]
+    public bool Open { get; set; }
+
+    /// <summary>The catalogue, offered as item commands. Loaded when the palette is opened.</summary>
+    [Parameter]
+    public IReadOnlyList<GroceryItemDto> Items { get; set; } = Array.Empty<GroceryItemDto>();
+
+    [Parameter]
+    public bool CanUndo { get; set; }
+
+    [Parameter]
+    public bool CanRedo { get; set; }
+
+    /// <summary>Raised when the palette wants to close: Escape, a click outside, or running something.</summary>
+    [Parameter]
+    public EventCallback Closed { get; set; }
+
+    /// <summary>Raised with the key of an action command, for the layout to carry out.</summary>
+    [Parameter]
+    public EventCallback<string> ActionInvoked { get; set; }
+
+    private IReadOnlyList<Command> everything = Array.Empty<Command>();
+    private List<Command> results = new();
+    private string? query;
+    private int selectedIndex;
+    private ElementReference inputElement;
+    private bool wasOpen;
+
+    protected override void OnParametersSet()
+    {
+        // Rebuilt on every parameter change so the undo and redo entries reflect whether they are possible.
+        everything = Palette.Build(Items, CanUndo, CanRedo);
+        Refresh();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Open && !wasOpen)
+        {
+            wasOpen = true;
+
+            try
+            {
+                // Opening the palette has to put the cursor in the field so the visitor can just start typing.
+                await inputElement.FocusAsync();
+            }
+            catch (InvalidOperationException)
+            {
+                // The field is not in the document yet. Clearing the flag lets the next render try again.
+                wasOpen = false;
+            }
+
+            return;
+        }
+
+        if (!Open)
+        {
+            wasOpen = false;
+        }
+    }
+
+    private void Refresh()
+    {
+        results = Palette.Search(everything, query).ToList();
+
+        // Typing can shorten the list past the highlighted row, so the selection is kept inside it rather than
+        // left pointing at a result that is no longer there.
+        selectedIndex = results.Count == 0 ? 0 : Math.Clamp(selectedIndex, 0, results.Count - 1);
+    }
+
+    private void OnQueryInput(ChangeEventArgs args)
+    {
+        query = args.Value?.ToString();
+        selectedIndex = 0;
+        Refresh();
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs args)
+    {
+        switch (args.Key)
+        {
+            case "ArrowDown":
+                if (results.Count > 0)
+                {
+                    selectedIndex = (selectedIndex + 1) % results.Count;
+                }
+
+                break;
+
+            case "ArrowUp":
+                if (results.Count > 0)
+                {
+                    selectedIndex = (selectedIndex - 1 + results.Count) % results.Count;
+                }
+
+                break;
+
+            case "Enter":
+                if (results.Count > 0)
+                {
+                    await RunAsync(results[selectedIndex]);
+                }
+
+                break;
+
+            case "Escape":
+                await CloseAsync();
+                break;
+        }
+    }
+
+    private async Task RunAsync(Command command)
+    {
+        await CloseAsync();
+
+        if (command.Kind == CommandKind.Action)
+        {
+            await ActionInvoked.InvokeAsync(command.ActionKey ?? string.Empty);
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(command.Href))
+        {
+            Navigation.NavigateTo(command.Href);
+        }
+    }
+
+    private async Task CloseAsync()
+    {
+        // A closed palette always opens empty, so the next use starts from the whole application rather than
+        // from whatever was typed last time.
+        query = null;
+        selectedIndex = 0;
+        Refresh();
+
+        await Closed.InvokeAsync();
+    }
+}

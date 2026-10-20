@@ -15,9 +15,10 @@ namespace GroceryApp.Services;
 public sealed class BrowserLocalStorageStore : JsonGroceryStore
 {
     /// <summary>
-    /// localStorage key holding the JSON catalogue.
+    /// localStorage key holding the JSON catalogue. Sourced from <see cref="AppStateKeys"/> so every
+    /// key the application owns is declared in one place.
     /// </summary>
-    public const string StorageKey = "groceryapp.catalogue.v1";
+    public const string StorageKey = AppStateKeys.Catalogue;
 
     private readonly IJSRuntime _jsRuntime;
     private string? _memoryFallback;

@@ -77,6 +77,19 @@ public interface IGroceryRepository
     Task<bool> ExistsAsync(int id);
 
     /// <summary>
+    /// Replaces the entire catalogue in a single write.
+    /// </summary>
+    /// <param name="items">The items that should make up the catalogue.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the stored catalogue as detached copies.</returns>
+    /// <remarks>
+    /// Bulk actions, imports and the undo stack all work out the catalogue they want and then write
+    /// it in one step, which is what turns a multi-row change into one operation rather than many.
+    /// Identifiers carried by the supplied items are preserved, because pinned items and the
+    /// activity log refer to items by identifier.
+    /// </remarks>
+    Task<IReadOnlyList<GroceryItem>> ReplaceAllAsync(IEnumerable<GroceryItem> items);
+
+    /// <summary>
     /// Clears the persisted catalogue and restores the original seeded demo data.
     /// </summary>
     /// <returns>A task that represents the asynchronous operation.</returns>

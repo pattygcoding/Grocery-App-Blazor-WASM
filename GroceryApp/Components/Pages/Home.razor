@@ -1,5 +1,6 @@
 @page "/"
 @inject IGroceryService GroceryService
+@inject IDemoScenarioService DemoScenario
 
 <PageTitle>Grocery catalogue - Blazor WebAssembly</PageTitle>
 
@@ -15,8 +16,11 @@
         <a class="btn btn-primary btn-lg" href="/groceries">
             <Icon Name="basket3-fill" /> Open groceries
         </a>
+        <a class="btn btn-secondary btn-lg" href="/dashboard">
+            <Icon Name="graph-up" /> View the dashboard
+        </a>
         <a class="btn btn-secondary btn-lg" href="/reports">
-            <Icon Name="bar-chart-fill" /> View reports
+            <Icon Name="bar-chart-fill" /> Reports
         </a>
     </div>
 
@@ -43,6 +47,52 @@
 <h2 class="section-title">What's in it</h2>
 
 <div class="panel-grid">
+    <article class="panel">
+        <div class="panel__body">
+            <span class="feature__icon"><Icon Name="graph-up" Size="18" /></span>
+            <h3 class="feature__title">Dashboard</h3>
+            <p class="feature__text">
+                What the stock is worth, what it would earn, what has moved in the last thirty days and
+                what that is worth against the thirty before it.
+            </p>
+        </div>
+    </article>
+
+    <article class="panel">
+        <div class="panel__body">
+            <span class="feature__icon"><Icon Name="activity" Size="18" /></span>
+            <h3 class="feature__title">A sense of time</h3>
+            <p class="feature__text">
+                Every movement is logged, so the app can work out how fast things sell, how long the stock
+                on the shelf lasts and which lines have gone quiet.
+            </p>
+        </div>
+    </article>
+
+    <article class="panel">
+        <div class="panel__body">
+            <span class="feature__icon"><Icon Name="funnel-fill" Size="18" /></span>
+            <h3 class="feature__title">Find anything</h3>
+            <p class="feature__text">
+                Search by name, code, supplier or tag, narrow by category, stock position and value band,
+                and the view you end up with is in the address bar to keep.
+            </p>
+        </div>
+    </article>
+
+    <article class="panel">
+        <div class="panel__body">
+            <span class="feature__icon"><Icon Name="search" Size="18" /></span>
+            <h3 class="feature__title">Keyboard first</h3>
+            <p class="feature__text">
+                <kbd class="palette__key">Ctrl</kbd> <kbd class="palette__key">K</kbd> opens a palette over
+                every page, every item and the actions worth reaching, and
+                <kbd class="palette__key">Ctrl</kbd> <kbd class="palette__key">Z</kbd> puts the last change
+                back from wherever you are. <kbd class="palette__key">?</kbd> lists the rest.
+            </p>
+        </div>
+    </article>
+
     <article class="panel">
         <div class="panel__body">
             <span class="feature__icon"><Icon Name="plus-lg" Size="18" /></span>
@@ -89,7 +139,8 @@
             <span class="feature__icon"><Icon Name="file-earmark-spreadsheet" Size="18" /></span>
             <h3 class="feature__title">Excel export</h3>
             <p class="feature__text">
-                A five sheet workbook written as Open XML in C#, downloaded straight from the page.
+                An eight sheet workbook written as Open XML in C#, downloaded straight from the page. The last
+                sheet is a list of lines to do something about, with the reason beside each one.
             </p>
         </div>
     </article>
@@ -220,6 +271,16 @@
             <Icon Name="chevron-right" CssClass="flow__arrow" />
             <code>localStorage</code>
         </p>
+
+        <p class="flow mt-3 mb-0">
+            Pages
+            <Icon Name="chevron-right" CssClass="flow__arrow" />
+            <code>IInventoryAnalyticsService</code>
+            <Icon Name="chevron-right" CssClass="flow__arrow" />
+            <code>IActivityService</code>
+            <Icon Name="chevron-right" CssClass="flow__arrow" />
+            <code>localStorage</code>
+        </p>
     </div>
 </div>
 
@@ -234,8 +295,16 @@
 
         try
         {
+            // The catalogue goes back to the seeded fifty and the log goes with it, because the log described
+            // items that no longer exist. The demonstration history is then rebuilt, so the dashboard and the
+            // restock worksheet are not left describing a catalogue that has gone.
             await GroceryService.ResetDemoDataAsync();
-            statusMessage = "Demo data restored - the original 50 items are back in the catalogue.";
+
+            var scenario = await DemoScenario.RebuildAsync(DateTime.UtcNow);
+
+            statusMessage = scenario.Applied
+                ? $"Demo data restored - the original 50 items are back, with {scenario.EntriesCreated} movements recorded against them."
+                : "Demo data restored - the original 50 items are back in the catalogue.";
         }
         catch (Exception ex)
         {

@@ -50,6 +50,9 @@ public abstract class JsonGroceryStore : IGroceryStore
     /// </summary>
     public Task ClearAsync() => RemoveRawAsync();
 
+    /// <inheritdoc />
+    public async Task<int> SizeAsync() => (await ReadRawAsync())?.Length ?? 0;
+
     /// <summary>
     /// Reads the raw JSON payload from the underlying storage.
     /// </summary>

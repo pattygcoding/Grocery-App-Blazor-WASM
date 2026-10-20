@@ -22,4 +22,24 @@ internal static class CategoryChip
         Category.Bread => "chip--bread",
         _ => "chip--neutral"
     };
+
+    /// <summary>
+    /// Gets the chart colour class for a category, for example "chart--vegetable".
+    /// </summary>
+    /// <param name="category">The category to colour.</param>
+    /// <returns>The chart class name.</returns>
+    /// <remarks>
+    /// Kept apart from <see cref="ClassFor"/> rather than reusing it: a chip paints a background, while a
+    /// ring segment or a bar needs the ink colour on its own, and the two would fight over the same
+    /// property.
+    /// </remarks>
+    public static string ChartClassFor(Category category) => category switch
+    {
+        Category.Fruit => "chart--fruit",
+        Category.Vegetable => "chart--vegetable",
+        Category.Meat => "chart--meat",
+        Category.Cheese => "chart--cheese",
+        Category.Bread => "chart--bread",
+        _ => "chart--neutral"
+    };
 }

@@ -1,4 +1,5 @@
-﻿<div class="nav-head">
+﻿@* The brand links to the landing page the visitor chose, and falls back to the home page. *@
+<div class="nav-head">
     <div class="nav-head__row">
         @* Leftmost control in the app: back to the personal site, matching the sidebar header
            used by Neo-Connect-Four (same house glyph and destination). *@
@@ -15,7 +16,7 @@
             </svg>
         </a>
 
-        <a class="nav-brand" href="">
+        <a class="nav-brand" href="@BrandHref">
             <span class="nav-brand__mark">
                 <Icon Name="basket3-fill" Size="18" AriaLabel="Grocery App" />
             </span>
@@ -42,12 +43,42 @@
         <Icon Name="house-door-fill" /> Home
     </NavLink>
 
+    <NavLink class="nav-link" href="dashboard">
+        <Icon Name="graph-up" /> Dashboard
+    </NavLink>
+
     <NavLink class="nav-link" href="groceries">
         <Icon Name="basket3-fill" /> Groceries
     </NavLink>
 
     <NavLink class="nav-link" href="reports">
         <Icon Name="bar-chart-fill" /> Reports
+    </NavLink>
+
+    <NavLink class="nav-link" href="restock">
+        <Icon Name="truck" /> Restock
+    </NavLink>
+
+    <NavLink class="nav-link" href="activity">
+        <Icon Name="clock-history" /> Activity
+    </NavLink>
+
+    <NavLink class="nav-link" href="suppliers">
+        <Icon Name="boxes" /> Suppliers
+    </NavLink>
+
+    <span class="nav-section">Catalogue tools</span>
+
+    <NavLink class="nav-link" href="import">
+        <Icon Name="upload" /> Import
+    </NavLink>
+
+    <NavLink class="nav-link" href="preferences">
+        <Icon Name="sliders" /> Preferences
+    </NavLink>
+
+    <NavLink class="nav-link" href="about">
+        <Icon Name="info-circle" /> About
     </NavLink>
 
     <span class="nav-section">Legacy reference</span>
@@ -62,3 +93,15 @@
         <Icon Name="box-arrow-up-right" CssClass="nav-link__hint icon-sm" />
     </a>
 </nav>
+
+@code {
+    /// <summary>Where the brand link goes, taken from the visitor's preferences.</summary>
+    [Parameter]
+    public string? LandingPage { get; set; }
+
+    /// <summary>
+    /// The brand's destination. A preference that names a page is honoured, and anything else falls back to
+    /// the home page rather than to a link that goes nowhere.
+    /// </summary>
+    private string BrandHref => string.IsNullOrWhiteSpace(LandingPage) ? "/" : LandingPage;
+}

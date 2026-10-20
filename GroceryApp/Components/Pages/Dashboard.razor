@@ -1,0 +1,501 @@
+@page "/dashboard"
+@implements IDisposable
+@inject IGroceryService GroceryService
+@inject IInventoryAnalyticsService Analytics
+@inject IActivityService Activity
+@inject IDemoScenarioService DemoScenario
+@inject ICatalogueHistoryService History
+
+<PageTitle>Dashboard</PageTitle>
+
+<header class="page-header">
+    <div class="page-header__text">
+        <h1>Dashboard</h1>
+        <p class="page-subtitle">
+            What the catalogue is worth, what needs attention and what has been moving, worked out from the
+            stock on hand and the movements recorded in this browser.
+        </p>
+    </div>
+
+    <div class="page-actions">
+        <a class="btn btn-secondary" href="/reports">
+            <Icon Name="bar-chart-fill" /> Full reports
+        </a>
+    </div>
+</header>
+
+@if (catalogue is null)
+{
+    <div class="loading-state">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Working out the figures…
+    </div>
+}
+else if (catalogue.Count == 0)
+{
+    <div class="panel">
+        <div class="empty-state">
+            <Icon Name="boxes" CssClass="empty-state__icon" Size="24" />
+            <h2>Nothing to analyse yet</h2>
+            <p>
+                The catalogue is empty, so there is nothing to value or compare. Add an item, or restore the
+                demo data, and the figures will fill in.
+            </p>
+            <div class="empty-state__actions">
+                <a class="btn btn-primary" href="/groceries/create">Add item</a>
+                <a class="btn btn-secondary" href="/">Restore demo data</a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="stat-grid">
+        <div class="stat-tile stat-tile--brand">
+            <span class="stat-tile__label"><Icon Name="boxes" CssClass="icon-sm" /> Held at cost</span>
+            <span class="stat-tile__value">@Money(valuation.CostValue)</span>
+            <span class="stat-tile__meta">
+                @valuation.ItemCount lines · @valuation.TotalUnits.ToString("N0") units
+            </span>
+        </div>
+
+        <div class="stat-tile">
+            <span class="stat-tile__label"><Icon Name="graph-up" CssClass="icon-sm" /> Profit potential</span>
+            <span class="stat-tile__value">@Money(valuation.PotentialProfit)</span>
+            <span class="stat-tile__meta">Average margin @Percent(valuation.AverageMarginPercent)</span>
+        </div>
+
+        <div class="stat-tile">
+            <span class="stat-tile__label"><Icon Name="activity" CssClass="icon-sm" /> Sold in 30 days</span>
+            <span class="stat-tile__value">@unitsLast30.ToString("N0")</span>
+            @if (HasPreviousPeriod)
+            {
+                <span class="stat-tile__delta @(DeltaIsUp ? "text-positive" : "text-negative")">
+                    <Icon Name="@(DeltaIsUp ? "arrow-up" : "arrow-down")" CssClass="icon-sm" />
+                    <span>@Math.Abs(DeltaPercent)% against the previous 30 days</span>
+                </span>
+            }
+            else
+            {
+                <span class="stat-tile__meta">No earlier period to compare with yet</span>
+            }
+        </div>
+
+        <div class="stat-tile">
+            <span class="stat-tile__label"><Icon Name="speedometer2" CssClass="icon-sm" /> Health score</span>
+            <span class="stat-tile__value">@health.Score<span class="text-subtle">/100</span></span>
+            <span class="stat-tile__meta">
+                Grade @health.Grade · @health.HealthyCount of @catalogue.Count within their thresholds
+            </span>
+        </div>
+    </div>
+
+    @if (historyIsGenerated)
+    {
+        <p class="generated-note mt-3">
+            The figures that need history are built on a generated demonstration history, recorded when this
+            catalogue was first opened. <a href="/">Restore the demo data</a> to rebuild it.
+        </p>
+    }
+
+    <div class="split mt-5">
+        <section class="panel">
+            <div class="panel__header">
+                <h2 class="panel__title"><Icon Name="boxes" /> Where the value sits</h2>
+            </div>
+            <div class="panel__body">
+                <DonutChart Segments="ValueSegments"
+                            CenterValue="@Money(valuation.RetailValue)"
+                            CenterLabel="at retail"
+                            AccessibleLabel="Retail value by category" />
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel__header">
+                <h2 class="panel__title"><Icon Name="speedometer2" /> Inventory health</h2>
+            </div>
+            <div class="panel__body">
+                <div class="health-score mb-3">
+                    <span class="health-score__grade @HealthGradeClass">@health.Grade</span>
+                    <span class="text-muted-strong">
+                        @health.Score out of 100. @health.OutOfStockCount out of stock,
+                        @health.LowCount at or below the reorder point, @health.OverstockCount overstocked.
+                    </span>
+                </div>
+
+                <div class="meter mb-4" role="img" aria-label="Health score @health.Score out of 100">
+                    <span class="meter__fill @HealthGradeClass" style="width:@health.Score%"></span>
+                </div>
+
+                <ul class="findings">
+                    @foreach (var finding in health.Findings)
+                    {
+                        <li class="finding finding--@finding.Severity.ToString().ToLowerInvariant()">
+                            <Icon Name="@FindingIcon(finding.Severity)" CssClass="icon-sm" />
+                            <div>
+                                <p class="finding__title">@finding.Title</p>
+                                <p class="finding__detail">@finding.Detail</p>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </section>
+    </div>
+
+    <div class="split mt-5">
+        <section class="panel">
+            <div class="panel__header">
+                <h2 class="panel__title"><Icon Name="graph-up" /> Profit potential by category</h2>
+            </div>
+            <div class="panel__body">
+                <BarChart Bars="ProfitBars" />
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel__header">
+                <h2 class="panel__title"><Icon Name="grid-3x3-gap" /> Where the value concentrates</h2>
+            </div>
+            <div class="panel__body">
+                <p class="feature__text">
+                    Items carrying the first
+                    @InventoryAnalyticsService.ClassAValueBoundary.ToString("0")% of the retail value are band A:
+                    the lines worth counting carefully.
+                </p>
+
+                <BarChart Bars="AbcBars" />
+
+                <p class="generated-note mt-3">
+                    @abc.ItemCountInClassA of @catalogue.Count lines are band A, holding
+                    @Percent(abc.Concentration) of the value held.
+                </p>
+            </div>
+        </section>
+    </div>
+
+    <div class="split mt-5">
+        <section class="panel">
+            <div class="panel__header">
+                <h2 class="panel__title"><Icon Name="truck" /> Needs ordering</h2>
+                <span class="text-subtle">@reorders.Count to look at</span>
+            </div>
+
+            @if (reorders.Count == 0)
+            {
+                <div class="panel__body">
+                    <p class="feature__text mb-0">
+                        Nothing is at or below its threshold, so there is nothing to order.
+                    </p>
+                </div>
+            }
+            else
+            {
+                <div class="panel__body panel__body--flush">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Item</th>
+                                    <th scope="col">State</th>
+                                    <th scope="col">On hand</th>
+                                    <th scope="col">Order</th>
+                                    <th scope="col">Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var suggestion in reorders.Take(8))
+                                {
+                                    <tr>
+                                        <td>
+                                            <a href="/groceries/@suggestion.Item.Id">@suggestion.Item.Name</a>
+                                            <span class="item-row__id">@suggestion.Item.Sku</span>
+                                        </td>
+                                        <td>
+                                            <span class="chip @StatusChip(suggestion.Status)">
+                                                @StatusLabel(suggestion.Status)
+                                            </span>
+                                        </td>
+                                        <td class="num">@suggestion.Item.Stock</td>
+                                        <td class="num">@suggestion.SuggestedQuantity</td>
+                                        <td class="num">@Money2(suggestion.EstimatedCost)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        </section>
+
+        <section class="panel">
+            <div class="panel__header">
+                <h2 class="panel__title"><Icon Name="graph-up" /> Moving fastest</h2>
+                <span class="text-subtle">units a day</span>
+            </div>
+
+            @if (MoverBars.Count == 0)
+            {
+                <div class="panel__body">
+                    <p class="feature__text mb-0">
+                        No units left stock in the last sixty days, so there is no rate to measure.
+                    </p>
+                </div>
+            }
+            else
+            {
+                <div class="panel__body">
+                    <BarChart Bars="MoverBars" />
+                </div>
+            }
+        </section>
+    </div>
+
+    <section class="panel mt-5">
+        <div class="panel__header">
+            <h2 class="panel__title"><Icon Name="activity" /> Recent activity</h2>
+        </div>
+
+        @if (RecentActivity.Count == 0)
+        {
+            <div class="panel__body">
+                <p class="feature__text mb-0">Nothing has happened to this catalogue yet.</p>
+            </div>
+        }
+        else
+        {
+            <div class="panel__body">
+                <ul class="timeline">
+                    @foreach (var entry in RecentActivity)
+                    {
+                        <li class="timeline__item">
+                            <span class="timeline__when">@When(entry.TimestampUtc)</span>
+                            <span class="timeline__what">@ActivityLabel(entry)</span>
+                            @if (entry.StockDelta != 0)
+                            {
+                                <span class="timeline__delta @(entry.StockDelta < 0 ? "text-negative" : "text-positive")">
+                                    @entry.StockDelta.ToString("+0;-0")
+                                </span>
+                            }
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </section>
+}
+
+@code {
+    private List<GroceryItemDto>? catalogue;
+    private IReadOnlyList<ActivityEntry> entries = Array.Empty<ActivityEntry>();
+
+    private ValuationSummary valuation = new();
+    private StockHealth health = new();
+    private List<CategoryPerformance> categories = new();
+    private AbcAnalysis abc = new();
+    private List<ReorderSuggestion> reorders = new();
+    private List<VelocityStat> movers = new();
+
+    private int unitsLast30;
+    private int unitsPrevious30;
+    private bool historyIsGenerated;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // The figures follow the history: an undo from the top bar changes the stock the dashboard is
+        // describing, so it reloads rather than sitting on figures that no longer match the catalogue.
+        History.Changed += OnHistoryChanged;
+
+        await RefreshAsync();
+    }
+
+    public void Dispose()
+    {
+        History.Changed -= OnHistoryChanged;
+    }
+
+    private void OnHistoryChanged() => _ = InvokeAsync(async () =>
+    {
+        try
+        {
+            await RefreshAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"The dashboard could not be reloaded after an undo: {ex.Message}");
+        }
+    });
+
+    /// <summary>
+    /// Re-reads the catalogue and the log and works out every figure the page shows.
+    /// </summary>
+    private async Task RefreshAsync()
+    {
+        var now = DateTime.UtcNow;
+
+        // Harmless when the layout has already prepared it: the scenario declines as soon as the catalogue
+        // has a history of its own, and calling it here means the dashboard is never rendering against an
+        // empty log while the layout's own call is still in flight.
+        await DemoScenario.TryApplyAsync(now);
+
+        catalogue = (await GroceryService.GetAllGroceriesAsync()).ToList();
+
+        // Sixty days covers the thirty day comparison as well as the figures themselves, so the log is
+        // read once rather than once per panel.
+        entries = await Activity.GetBetweenAsync(now.AddDays(-60), now);
+
+        valuation = Analytics.Summarise(catalogue);
+        health = Analytics.AssessHealth(catalogue, entries, now);
+        categories = Analytics.ByCategory(catalogue).ToList();
+        abc = Analytics.AnalyseAbc(catalogue);
+        reorders = Analytics.SuggestReorders(catalogue, entries, now).ToList();
+        movers = Analytics.CalculateVelocity(catalogue, entries, now).ToList();
+
+        unitsLast30 = UnitsSoldBetween(now.AddDays(-30), now);
+        unitsPrevious30 = UnitsSoldBetween(now.AddDays(-60), now.AddDays(-30));
+
+        historyIsGenerated = entries.Any(entry => entry.IsSeeded);
+    }
+
+    /// <summary>
+    /// Totals the units taken out of stock in a window.
+    /// </summary>
+    /// <remarks>
+    /// Only outward movements count: a restock is supply, not something the shop sold, so counting it
+    /// would make the comparison between periods describe deliveries rather than demand.
+    /// </remarks>
+    private int UnitsSoldBetween(DateTime fromUtc, DateTime toUtc) =>
+        entries
+            .Where(entry => entry.StockDelta < 0 &&
+                            entry.TimestampUtc >= fromUtc &&
+                            entry.TimestampUtc <= toUtc)
+            .Sum(entry => -entry.StockDelta);
+
+    private bool HasPreviousPeriod => unitsPrevious30 > 0;
+
+    private bool DeltaIsUp => unitsLast30 >= unitsPrevious30;
+
+    private int DeltaPercent => unitsPrevious30 == 0
+        ? 0
+        : (int)Math.Round((double)(unitsLast30 - unitsPrevious30) / unitsPrevious30 * 100d);
+
+    private IReadOnlyList<DonutChart.DonutSegment> ValueSegments => categories
+        .Select(category => new DonutChart.DonutSegment(
+            category.Category.ToString(),
+            Money2(category.StockRetailValue),
+            category.StockRetailValue,
+            CategoryChip.ChartClassFor(category.Category)))
+        .ToList();
+
+    private IReadOnlyList<BarChart.Bar> ProfitBars => categories
+        .OrderByDescending(category => category.PotentialProfit)
+        .Select(category => new BarChart.Bar(
+            category.Category.ToString(),
+            Money(category.PotentialProfit),
+            category.PotentialProfit,
+            CategoryChip.ChartClassFor(category.Category)))
+        .ToList();
+
+    private IReadOnlyList<BarChart.Bar> AbcBars => abc.Classes
+        .Select(band => new BarChart.Bar(
+            $"Band {band.Class}",
+            $"{band.ShareOfValue:0.#}% of value",
+            band.ShareOfValue,
+            band.Class switch
+            {
+                AbcClass.A => "chart--brand",
+                AbcClass.B => "chart--info",
+                _ => "chart--neutral"
+            }))
+        .ToList();
+
+    private IReadOnlyList<BarChart.Bar> MoverBars => movers
+        .Where(stat => stat.UnitsPerDay > 0)
+        .Take(8)
+        .Select(stat => new BarChart.Bar(
+            stat.Name,
+            $"{stat.UnitsPerDay:0.##} a day",
+            (decimal)stat.UnitsPerDay,
+            "chart--brand"))
+        .ToList();
+
+    private IReadOnlyList<ActivityEntry> RecentActivity => entries.Take(10).ToList();
+
+    private string HealthGradeClass => health.Score switch
+    {
+        >= 90 => "text-positive",
+        >= 75 => "chart--info",
+        >= 60 => "text-caution",
+        _ => "text-negative"
+    };
+
+    private static string FindingIcon(FindingSeverity severity) => severity switch
+    {
+        FindingSeverity.Positive => "check2-circle",
+        FindingSeverity.Information => "activity",
+        _ => "exclamation-triangle"
+    };
+
+    private static string StatusChip(StockStatus status) => status switch
+    {
+        StockStatus.OutOfStock => "chip--danger",
+        StockStatus.Critical or StockStatus.Low => "chip--caution",
+        StockStatus.Overstock => "chip--neutral",
+        _ => "chip--positive"
+    };
+
+    private static string StatusLabel(StockStatus status) => status switch
+    {
+        StockStatus.OutOfStock => "Out of stock",
+        StockStatus.Critical => "Nearly out",
+        StockStatus.Low => "At the threshold",
+        StockStatus.Overstock => "Overstocked",
+        _ => "Covered"
+    };
+
+    /// <summary>
+    /// Describes a logged movement in a line a person can read.
+    /// </summary>
+    private static string ActivityLabel(ActivityEntry entry) => entry.Kind switch
+    {
+        ActivityKind.Created => $"Added {entry.ItemName}",
+        ActivityKind.Updated => $"Edited {entry.ItemName}",
+        ActivityKind.Deleted => $"Deleted {entry.ItemName}",
+        ActivityKind.Archived => $"Archived {entry.ItemName}",
+        ActivityKind.Restored => $"Restored {entry.ItemName}",
+        ActivityKind.PriceChanged => $"Repriced {entry.ItemName}",
+        ActivityKind.StockAdjusted when entry.StockDelta < 0 =>
+            $"Sold {Math.Abs(entry.StockDelta)} of {entry.ItemName}",
+        ActivityKind.StockAdjusted => $"Corrected {entry.ItemName} by {entry.StockDelta}",
+        ActivityKind.BulkRestock when entry.Detail == "Opening stock" =>
+            $"Opened {entry.ItemName} with {entry.StockDelta}",
+        ActivityKind.BulkRestock => $"Restocked {entry.StockDelta} of {entry.ItemName}",
+        ActivityKind.Imported => "Imported a catalogue",
+        ActivityKind.Reset => "Restored the demo data",
+        ActivityKind.Undone => "Undid a change",
+        ActivityKind.Redone => "Redid a change",
+        _ => entry.Detail
+    };
+
+    private static string When(DateTime atUtc)
+    {
+        var age = DateTime.UtcNow - atUtc;
+
+        return age switch
+        {
+            { TotalMinutes: < 1 } => "just now",
+            { TotalHours: < 1 } => $"{(int)age.TotalMinutes} min ago",
+            { TotalDays: < 1 } => $"{(int)age.TotalHours} h ago",
+            { TotalDays: < 30 } => $"{(int)age.TotalDays} d ago",
+            _ => atUtc.ToString("d MMM")
+        };
+    }
+
+    private static string Money(decimal value) => value.ToString("C0");
+
+    private static string Money2(decimal value) => value.ToString("C2");
+
+    private static string Percent(decimal value) => value.ToString("0.#") + "%";
+}

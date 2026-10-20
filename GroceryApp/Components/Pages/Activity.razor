@@ -1,0 +1,408 @@
+@page "/activity"
+@implements IDisposable
+@inject IActivityService ActivityLog
+@inject IActivityQueryService QueryService
+@inject ICatalogueHistoryService History
+
+<PageTitle>Activity</PageTitle>
+
+@* The timeline: what happened to the catalogue, day by day.
+
+   Every figure the application shows with a sense of time in it comes from this log, so the page that shows
+   the log itself is where a surprising number can be traced back to the entries that produced it. *@
+
+<header class="page-header">
+    <div class="page-header__text">
+        <h1>Activity</h1>
+        <p class="page-subtitle">
+            @if (entries is null)
+            {
+                <text>Reading the log from this browser…</text>
+            }
+            else if (result is null)
+            {
+                <text>@entries.Count recorded entries.</text>
+            }
+            else
+            {
+                <text>@Summary</text>
+            }
+        </p>
+    </div>
+
+    <div class="page-actions">
+        <button type="button" class="btn btn-secondary" @onclick="LoadAsync">
+            <Icon Name="arrow-counterclockwise" /> Reload
+        </button>
+    </div>
+</header>
+
+@if (entries is null)
+{
+    <div class="loading-state">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Reading the activity log…
+    </div>
+}
+else
+{
+    @if (loadError is not null)
+    {
+        <div class="alert alert--danger" role="alert">
+            <p class="alert__title">@loadError</p>
+        </div>
+    }
+
+    <section class="panel">
+        <div class="panel__body">
+            <div class="filter-bar__row">
+                <span class="filter-bar__search">
+                    <Icon Name="search" CssClass="filter-bar__search-icon" />
+                    <label class="visually-hidden" for="activity-search">Search the activity log</label>
+                    <input id="activity-search"
+                           class="form-control"
+                           type="search"
+                           placeholder="Search item, detail or kind"
+                           value="@filter.SearchText"
+                           @onchange="OnSearchChanged" />
+                </span>
+
+                <select class="form-control filter-bar__select"
+                        aria-label="Kind of entry"
+                        @onchange="OnKindChanged">
+                    <option value="" selected="@(!filter.Kind.HasValue)">Every kind</option>
+                    @foreach (var kind in Kinds)
+                    {
+                        <option value="@kind" selected="@(filter.Kind == kind)">
+                            @Label(kind)@KindCount(kind)
+                        </option>
+                    }
+                </select>
+
+                <label class="form-check-inline">
+                    <input type="checkbox"
+                           checked="@filter.StockMovementsOnly"
+                           @onchange="OnStockOnlyChanged" />
+                    Stock movements only
+                </label>
+
+                <label class="form-check-inline">
+                    <input type="checkbox"
+                           checked="@filter.IncludeGenerated"
+                           @onchange="OnGeneratedChanged" />
+                    Include the generated history
+                </label>
+
+                @if (filter.IsNarrowing)
+                {
+                    <button type="button" class="btn btn-ghost" @onclick="ClearFilters">
+                        <Icon Name="x-lg" /> Clear filters
+                    </button>
+                }
+            </div>
+        </div>
+    </section>
+
+    @if (result is null || result.Days.Count == 0)
+    {
+        <div class="panel">
+            <div class="empty-state">
+                <Icon Name="clock-history" CssClass="empty-state__icon" Size="24" />
+                <h2>Nothing recorded matches that</h2>
+                <p>
+                    The log holds @entries.Count @(entries.Count == 1 ? "entry" : "entries"), none of which
+                    match the filters in force.
+                </p>
+                <div class="empty-state__actions">
+                    <button type="button" class="btn btn-secondary" @onclick="ClearFilters">
+                        <Icon Name="x-lg" /> Clear the filters
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="stat-grid stat-grid--tight">
+            <div class="stat-tile stat-tile--sm">
+                <span class="stat-tile__label">Entries</span>
+                <span class="stat-tile__value">@result.MatchingEntries</span>
+            </div>
+            <div class="stat-tile stat-tile--sm">
+                <span class="stat-tile__label">Days</span>
+                <span class="stat-tile__value">@result.Days.Count</span>
+            </div>
+            <div class="stat-tile stat-tile--sm">
+                <span class="stat-tile__label">Units in</span>
+                <span class="stat-tile__value text-positive">+@result.UnitsIn</span>
+            </div>
+            <div class="stat-tile stat-tile--sm">
+                <span class="stat-tile__label">Units out</span>
+                <span class="stat-tile__value text-caution">-@result.UnitsOut</span>
+            </div>
+        </div>
+
+        @if (result.Omitted > 0)
+        {
+            <div class="alert alert--info" role="status">
+                <p class="alert__title">
+                    Showing the newest @(result.MatchingEntries - result.Omitted)
+                    @(result.MatchingEntries - result.Omitted == 1 ? "entry" : "entries").
+                </p>
+                <p>
+                    @result.Omitted older @(result.Omitted == 1 ? "entry is" : "entries are") not shown. Narrow
+                    the filters, or search for an item, to reach further back.
+                </p>
+            </div>
+        }
+
+        @foreach (var day in result.Days)
+        {
+            <section class="timeline-day">
+                <header class="timeline-day__head">
+                    <h2 class="timeline-day__date">
+                        @day.Date.ToString("ddd d MMM yyyy")
+                        @if (day.IsEntirelyGenerated)
+                        {
+                            <span class="chip chip--neutral"
+                                  title="Generated to give the demonstration a history">Generated</span>
+                        }
+                    </h2>
+
+                    <span class="timeline-day__meta">
+                        @day.Entries.Count @(day.Entries.Count == 1 ? "entry" : "entries")
+                        @if (day.StockDelta != 0)
+                        {
+                            <span class="@(day.StockDelta > 0 ? "text-positive" : "text-caution")">
+                                · @(day.StockDelta > 0 ? "+" : string.Empty)@day.StockDelta units
+                            </span>
+                        }
+                    </span>
+                </header>
+
+                <ol class="timeline">
+                    @foreach (var entry in day.Entries)
+                    {
+                        <li class="timeline__item">
+                            <span class="timeline__marker @MarkerClass(entry.Kind)" aria-hidden="true"></span>
+
+                            <div class="timeline__body">
+                                <div class="timeline__head">
+                                    <span class="chip @KindClass(entry.Kind)">@Label(entry.Kind)</span>
+
+                                    @if (entry.ItemId > 0)
+                                    {
+                                        <a class="timeline__name" href="/groceries/@entry.ItemId">@entry.ItemName</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="timeline__name">Catalogue</span>
+                                    }
+
+                                    @if (entry.StockDelta != 0)
+                                    {
+                                        <span class="timeline__delta @(entry.StockDelta > 0 ? "text-positive" : "text-caution")">
+                                            @(entry.StockDelta > 0 ? "+" : string.Empty)@entry.StockDelta
+                                        </span>
+                                    }
+
+                                    <span class="timeline__time">@entry.TimestampUtc.ToLocalTime().ToString("HH:mm")</span>
+                                </div>
+
+                                @if (!string.IsNullOrWhiteSpace(entry.Detail))
+                                {
+                                    <p class="timeline__detail">@entry.Detail</p>
+                                }
+                            </div>
+                        </li>
+                    }
+                </ol>
+            </section>
+        }
+    }
+}
+
+@code {
+    private static readonly ActivityKind[] Kinds = Enum.GetValues<ActivityKind>();
+
+    /// <summary>
+    /// How many entries the page renders at most.
+    /// </summary>
+    /// <remarks>
+    /// The log is capped at three thousand entries and most of them are generated, so rendering all of it
+    /// would put thousands of nodes on the page to look at the top of it. Four hundred is several screens of
+    /// scrolling, and any real edit is well inside it, because edits are the newest entries.
+    /// </remarks>
+    private const int MaxEntries = 400;
+
+    private List<ActivityEntry>? entries;
+    private ActivityQueryResult? result;
+    private ActivityFilter filter = new();
+    private string? loadError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // A generated history is what most of the log is, so the timeline starts showing it: a page that
+        // disagreed with the figures on the dashboard would read as a bug rather than as a preference.
+        filter.IncludeGenerated = true;
+
+        // An undo from anywhere changes the log, and this page is the one showing the log.
+        History.Changed += OnHistoryChanged;
+
+        await LoadAsync();
+    }
+
+    public void Dispose()
+    {
+        History.Changed -= OnHistoryChanged;
+    }
+
+    private void OnHistoryChanged() => _ = InvokeAsync(async () =>
+    {
+        try
+        {
+            await LoadAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"The activity log could not be reloaded after an undo: {ex.Message}");
+        }
+    });
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            entries = (await ActivityLog.GetAllAsync()).ToList();
+            loadError = null;
+        }
+        catch (Exception ex)
+        {
+            entries ??= new List<ActivityEntry>();
+            loadError = "The activity log could not be read from browser storage.";
+            Console.WriteLine($"Error reading the activity log: {ex.Message}");
+        }
+
+        ApplyFilter();
+    }
+
+    private void ApplyFilter() =>
+        result = entries is null ? null : QueryService.Query(entries, filter, MaxEntries);
+
+    private string Summary
+    {
+        get
+        {
+            if (result is null)
+            {
+                return string.Empty;
+            }
+
+            var days = result.Days.Count;
+            var parts = new List<string>
+            {
+                filter.IsNarrowing
+                    ? $"{result.MatchingEntries} of {result.TotalEntries} entries"
+                    : $"{result.MatchingEntries} entries",
+                $"over {days} {(days == 1 ? "day" : "days")}"
+            };
+
+            if (result.UnitsOut > 0)
+            {
+                parts.Add($"{result.UnitsOut} units taken out of stock");
+            }
+
+            return string.Join(" · ", parts);
+        }
+    }
+
+    private string KindCount(ActivityKind kind) =>
+        result is not null && result.KindCounts.TryGetValue(kind, out var count) ? $" ({count})" : string.Empty;
+
+    private Task OnSearchChanged(ChangeEventArgs args)
+    {
+        filter.SearchText = args.Value?.ToString();
+        ApplyFilter();
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnKindChanged(ChangeEventArgs args)
+    {
+        filter.Kind = Enum.TryParse<ActivityKind>(args.Value?.ToString(), out var kind) ? kind : null;
+        ApplyFilter();
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnStockOnlyChanged(ChangeEventArgs args)
+    {
+        filter.StockMovementsOnly = args.Value is true;
+        ApplyFilter();
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnGeneratedChanged(ChangeEventArgs args)
+    {
+        filter.IncludeGenerated = args.Value is true;
+        ApplyFilter();
+
+        return Task.CompletedTask;
+    }
+
+    private Task ClearFilters()
+    {
+        filter = new ActivityFilter();
+        ApplyFilter();
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// The word the timeline uses for a kind of entry.
+    /// </summary>
+    /// <remarks>
+    /// The enum names are for the code; these are for a person reading a column of them.
+    /// </remarks>
+    private static string Label(ActivityKind kind) => kind switch
+    {
+        ActivityKind.Created => "Added",
+        ActivityKind.Updated => "Edited",
+        ActivityKind.Deleted => "Deleted",
+        ActivityKind.Archived => "Archived",
+        ActivityKind.Restored => "Restored",
+        ActivityKind.StockAdjusted => "Stock adjusted",
+        ActivityKind.BulkRestock => "Restocked",
+        ActivityKind.PriceChanged => "Price changed",
+        ActivityKind.Imported => "Imported",
+        ActivityKind.Reset => "Reset",
+        ActivityKind.Undone => "Undone",
+        ActivityKind.Redone => "Redone",
+        _ => kind.ToString()
+    };
+
+    /// <summary>
+    /// The chip colour for a kind, chosen so a change that added stock is distinguishable from one that took
+    /// it out at a glance: a timeline of one uniform colour is a wall of text.
+    /// </summary>
+    private static string KindClass(ActivityKind kind) => kind switch
+    {
+        ActivityKind.Created or ActivityKind.Restored or ActivityKind.BulkRestock or ActivityKind.Redone => "chip--positive",
+        ActivityKind.Deleted or ActivityKind.Undone => "chip--caution",
+        ActivityKind.Archived => "chip--neutral",
+        ActivityKind.Imported or ActivityKind.Reset => "chip--brand",
+        _ => "chip--info"
+    };
+
+    /// <summary>
+    /// The colour of the dot on the timeline spine, so the eye can find the entries that changed stock.
+    /// </summary>
+    private static string MarkerClass(ActivityKind kind) => kind switch
+    {
+        ActivityKind.Created or ActivityKind.Restored or ActivityKind.BulkRestock => "timeline__marker--positive",
+        ActivityKind.Deleted or ActivityKind.Archived or ActivityKind.Undone => "timeline__marker--caution",
+        _ => "timeline__marker--info"
+    };
+}
