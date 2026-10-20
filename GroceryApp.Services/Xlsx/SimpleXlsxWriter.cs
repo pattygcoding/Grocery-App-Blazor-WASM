@@ -11,7 +11,7 @@ namespace GroceryApp.Services.Xlsx;
 /// not browser friendly (it depends on Open XML SDK plus font libraries), so this writer
 /// generates the Open XML package directly with <see cref="ZipArchive"/>. The result opens in
 /// Excel, Numbers, LibreOffice and Google Sheets exactly like a ClosedXML generated file, and
-/// it keeps the whole application running client side on static hosting such as GitHub Pages.
+/// it keeps workbook generation inside the application, so the export works wherever the app runs.
 /// </remarks>
 public sealed class SimpleXlsxWriter
 {

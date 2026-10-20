@@ -6,8 +6,8 @@ namespace GroceryApp.Services;
 /// Generates the downloadable report workbook for the application.
 /// </summary>
 /// <remarks>
-/// The report is produced entirely in the browser, so the application keeps working on
-/// static hosting (GitHub Pages) with no server side component.
+/// The report is produced entirely in the browser, so the workbook is ready to download as soon
+/// as it has been written.
 /// </remarks>
 public interface IExcelExportService
 {

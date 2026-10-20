@@ -5,12 +5,12 @@ using GroceryApp.Models;
 namespace GroceryApp.Data.Repositories;
 
 /// <summary>
-/// Repository implementation for the front-end only Blazor WebAssembly build of the app.
+/// Repository implementation for the Blazor WebAssembly build of the app.
 /// </summary>
 /// <remarks>
-/// There is no database: the catalogue is cached in memory for the lifetime of the browser
-/// session and persisted through <see cref="IGroceryStore"/> (localStorage in the browser).
-/// The first read seeds the catalogue with the 50 demo items embedded in SeedData.json.
+/// The catalogue is cached in memory for the lifetime of the browser session and persisted
+/// through <see cref="IGroceryStore"/> (localStorage in the browser). The first read seeds the
+/// catalogue with the 50 demo items embedded in SeedData.json.
 /// </remarks>
 public class GroceryRepository : IGroceryRepository
 {

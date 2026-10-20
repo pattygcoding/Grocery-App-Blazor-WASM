@@ -15,8 +15,8 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// Everything runs in the browser: there is no server, no database and no API.
-// The catalogue is kept in memory for the session and persisted to localStorage.
+// The catalogue is kept in memory for the session and persisted to localStorage, so it is
+// restored on the next visit.
 builder.Services.AddSingleton<IGroceryStore, BrowserLocalStorageStore>();
 builder.Services.AddSingleton<IGroceryRepository, GroceryRepository>();
 builder.Services.AddSingleton<IGroceryService, GroceryService>();

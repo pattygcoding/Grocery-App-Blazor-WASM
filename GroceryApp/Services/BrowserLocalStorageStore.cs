@@ -7,10 +7,10 @@ namespace GroceryApp.Services;
 /// Persists the grocery catalogue in the browser's <c>localStorage</c>.
 /// </summary>
 /// <remarks>
-/// This is what makes the application "front-end only": nothing is sent to a server, the data
-/// lives in the visitor's browser and survives page reloads (but not a cleared browser storage).
-/// When storage is unavailable (for example private browsing modes that block localStorage) the
-/// store transparently falls back to an in-memory payload so the app keeps working.
+/// The data lives in the visitor's browser and survives page reloads (but not a cleared browser
+/// storage). When storage is unavailable (for example private browsing modes that block
+/// localStorage) the store transparently falls back to an in-memory payload so the app keeps
+/// working.
 /// </remarks>
 public sealed class BrowserLocalStorageStore : JsonGroceryStore
 {

@@ -1,5 +1,5 @@
-// Saves a generated file to the user's device. Everything happens in the browser, so the app
-// needs no server endpoint to deliver the Excel report.
+// Saves a generated file to the user's device. Everything happens in the browser, so the Excel
+// report is handed to the download as soon as it has been written.
 window.groceryFileDownload = {
     saveBase64: function (fileName, base64, contentType) {
         const binary = atob(base64);

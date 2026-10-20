@@ -19,8 +19,8 @@ GitHub Pages.
 | Persistence | EF Core 9 + SQLite database | `localStorage` through JS interop, seeded from an embedded `SeedData.json` |
 | Data access | `DbContext` + repository | Repository over a browser storage abstraction (`IGroceryStore`) |
 | Excel export | ClosedXML + REST endpoint `/api/reports/export-excel` | `XlsxExportService`, a dependency-free Open XML writer, downloads the file from the browser |
-| API endpoints | `GroceriesController`, `ReportsController`, Swagger | Retired - the pages call the service layer directly |
-| Client side routing | Server side routing | Static host + `404.html` fallback so deep links and refreshes work on GitHub Pages |
+| Data flow | `GroceriesController` + `ReportsController`, Swagger | Pages call `IGroceryService` directly through dependency injection |
+| Client side routing | Server side routing | `404.html` fallback so deep links and refreshes work on GitHub Pages |
 | Tests | Service layer (xUnit + NSubstitute) | Same service tests, plus repository/storage and workbook generation tests |
 
 Everything else - the domain model, DTOs, service layer, pages, layout and styling - is kept

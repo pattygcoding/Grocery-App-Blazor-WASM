@@ -6,9 +6,8 @@ namespace GroceryApp.Data;
 /// Defines the contract for persisting the grocery catalogue inside the browser.
 /// </summary>
 /// <remarks>
-/// This application is a front-end only Blazor WebAssembly app hosted on GitHub Pages,
-/// so there is no database and no server side storage. Implementations of this interface
-/// write the whole catalogue to browser storage (localStorage) or to memory.
+/// Implementations of this interface write the whole catalogue to browser storage (localStorage)
+/// or, as a fallback, to memory.
 /// </remarks>
 public interface IGroceryStore
 {

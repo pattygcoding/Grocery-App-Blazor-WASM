@@ -7,8 +7,8 @@ namespace GroceryApp.Data.Repositories;
 /// Provides methods for CRUD operations and existence checking of grocery items in the data store.
 /// </summary>
 /// <remarks>
-/// In this front-end only Blazor WebAssembly build the "data store" is browser storage, so every
-/// operation is asynchronous and runs inside the visitor's browser.
+/// In this Blazor WebAssembly build the "data store" is browser storage, so every operation is
+/// asynchronous and runs inside the visitor's browser.
 /// </remarks>
 public interface IGroceryRepository
 {
