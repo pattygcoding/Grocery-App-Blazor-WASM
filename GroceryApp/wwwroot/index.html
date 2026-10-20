@@ -7,6 +7,21 @@
     <title>Grocery App - Blazor WebAssembly</title>
     <meta name="description" content="Front-end only Blazor WebAssembly grocery catalogue: client side CRUD, localStorage persistence and in-browser Excel reports, hosted on GitHub Pages." />
     <meta name="color-scheme" content="light dark" />
+    <script>
+        // Resolve the theme before first paint so a dark preference never flashes light.
+        // The theme control writes the same key ("light", "dark", or absent meaning "system").
+        (function () {
+            var stored = null;
+            try { stored = localStorage.getItem('groceryapp.theme'); } catch (e) { }
+            var preference = stored === 'light' || stored === 'dark' ? stored : 'system';
+            var theme = preference === 'system'
+                ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                : preference;
+            var root = document.documentElement;
+            root.setAttribute('data-theme', theme);
+            root.setAttribute('data-theme-preference', preference);
+        })();
+    </script>
     <base href="/" />
     <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="app.css" />
@@ -78,12 +93,12 @@
             50% { opacity: 1; transform: scaleX(1); }
         }
 
-        @media (prefers-color-scheme: dark) {
-            .boot { color: #a7b0c0; }
-            .boot__mark { background-color: #a5b0ff; color: #0b0f19; }
-            .boot__title { color: #eef1f6; }
-            .boot__bar { background-color: #a5b0ff; }
-        }
+        /* The theme attribute is set by the inline script above, so the first paint already matches
+           the resolved theme (explicit choice or the system setting). */
+        html[data-theme="dark"] .boot { color: #a7b0c0; }
+        html[data-theme="dark"] .boot__mark { background-color: #a5b0ff; color: #0b0f19; }
+        html[data-theme="dark"] .boot__title { color: #eef1f6; }
+        html[data-theme="dark"] .boot__bar { background-color: #a5b0ff; }
 
         @media (prefers-reduced-motion: reduce) {
             .boot__bar { animation: none; opacity: 0.6; transform: none; }
@@ -114,6 +129,7 @@
             </svg>
         </button>
     </div>
+    <script src="theme.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="sortable-table.js"></script>
     <script src="file-download.js"></script>

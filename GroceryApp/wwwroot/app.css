@@ -7,9 +7,10 @@
    utilities the markup relies on, but its components are restyled here rather
    than used as-is.
 
-   Theming: light by default, dark automatically through prefers-color-scheme.
-   Both themes are driven by the same tokens, so nothing below hardcodes a
-   colour.
+   Theming: an explicit theme is written to <html data-theme="light|dark"> by the inline
+   script in index.html before first paint (stored preference, otherwise the OS setting),
+   and changed at runtime by the theme control in the top bar. Both themes are driven by
+   the same tokens, so nothing below hardcodes a colour.
 
    Sections
      1. Tokens (light + dark)
@@ -23,7 +24,7 @@
 /* 1. Tokens ================================================================ */
 
 :root {
-    color-scheme: light dark;
+    color-scheme: light;
 
     /* Surfaces */
     --canvas: #f4f5f7;
@@ -119,59 +120,59 @@
     --content-max: 1180px;
 }
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        --canvas: #0b0f19;
-        --surface: #131826;
-        --surface-muted: #171d2b;
-        --surface-sunken: #1d2434;
-        --surface-inverse: #eef1f6;
+:root[data-theme="dark"] {
+    color-scheme: dark;
 
-        --border: #262f42;
-        --border-strong: #384258;
+    --canvas: #0b0f19;
+    --surface: #131826;
+    --surface-muted: #171d2b;
+    --surface-sunken: #1d2434;
+    --surface-inverse: #eef1f6;
 
-        --text: #eef1f6;
-        --text-muted: #a7b0c0;
-        --text-subtle: #7c869a;
-        --text-on-brand: #0b0f19;
+    --border: #262f42;
+    --border-strong: #384258;
 
-        --brand: #a5b0ff;
-        --brand-hover: #bcc4ff;
-        --brand-soft: rgba(129, 140, 248, 0.14);
-        --brand-border: rgba(129, 140, 248, 0.32);
+    --text: #eef1f6;
+    --text-muted: #a7b0c0;
+    --text-subtle: #7c869a;
+    --text-on-brand: #0b0f19;
 
-        --positive: #34d399;
-        --positive-soft: rgba(16, 185, 129, 0.13);
-        --positive-border: rgba(16, 185, 129, 0.3);
-        --caution: #fbbf24;
-        --caution-soft: rgba(251, 191, 36, 0.12);
-        --caution-border: rgba(251, 191, 36, 0.3);
-        --danger: #f87171;
-        --danger-soft: rgba(248, 113, 113, 0.12);
-        --danger-border: rgba(248, 113, 113, 0.32);
-        --info: #60a5fa;
-        --info-soft: rgba(96, 165, 250, 0.12);
-        --info-border: rgba(96, 165, 250, 0.32);
+    --brand: #a5b0ff;
+    --brand-hover: #bcc4ff;
+    --brand-soft: rgba(129, 140, 248, 0.14);
+    --brand-border: rgba(129, 140, 248, 0.32);
 
-        --cat-fruit: #7dd3fc;
-        --cat-fruit-soft: rgba(56, 189, 248, 0.14);
-        --cat-vegetable: #6ee7b7;
-        --cat-vegetable-soft: rgba(16, 185, 129, 0.14);
-        --cat-meat: #fda4af;
-        --cat-meat-soft: rgba(244, 63, 94, 0.14);
-        --cat-cheese: #fcd34d;
-        --cat-cheese-soft: rgba(245, 158, 11, 0.14);
-        --cat-bread: #d6d3d1;
-        --cat-bread-soft: rgba(214, 211, 209, 0.12);
+    --positive: #34d399;
+    --positive-soft: rgba(16, 185, 129, 0.13);
+    --positive-border: rgba(16, 185, 129, 0.3);
+    --caution: #fbbf24;
+    --caution-soft: rgba(251, 191, 36, 0.12);
+    --caution-border: rgba(251, 191, 36, 0.3);
+    --danger: #f87171;
+    --danger-soft: rgba(248, 113, 113, 0.12);
+    --danger-border: rgba(248, 113, 113, 0.32);
+    --info: #60a5fa;
+    --info-soft: rgba(96, 165, 250, 0.12);
+    --info-border: rgba(96, 165, 250, 0.32);
 
-        --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
-        --shadow-md: 0 6px 14px -4px rgba(0, 0, 0, 0.55);
-        --shadow-lg: 0 18px 36px -16px rgba(0, 0, 0, 0.7);
+    --cat-fruit: #7dd3fc;
+    --cat-fruit-soft: rgba(56, 189, 248, 0.14);
+    --cat-vegetable: #6ee7b7;
+    --cat-vegetable-soft: rgba(16, 185, 129, 0.14);
+    --cat-meat: #fda4af;
+    --cat-meat-soft: rgba(244, 63, 94, 0.14);
+    --cat-cheese: #fcd34d;
+    --cat-cheese-soft: rgba(245, 158, 11, 0.14);
+    --cat-bread: #d6d3d1;
+    --cat-bread-soft: rgba(214, 211, 209, 0.12);
 
-        --focus-ring: 0 0 0 3px rgba(165, 176, 255, 0.35);
-        --focus-ring-danger: 0 0 0 3px rgba(248, 113, 113, 0.32);
-    }
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
+    --shadow-md: 0 6px 14px -4px rgba(0, 0, 0, 0.55);
+    --shadow-lg: 0 18px 36px -16px rgba(0, 0, 0, 0.7);
+
+    --focus-ring: 0 0 0 3px rgba(165, 176, 255, 0.35);
+    --focus-ring-danger: 0 0 0 3px rgba(248, 113, 113, 0.32);
 }
 
 /* 2. Base and typography =================================================== */
@@ -304,6 +305,49 @@ code, kbd, samp {
     align-items: center;
     display: flex;
     gap: var(--space-5);
+}
+
+.app-topbar__actions {
+    align-items: center;
+    display: flex;
+    gap: var(--space-4);
+}
+
+/* Theme control: a compact segmented control (light / dark / system). --------- */
+
+.theme-toggle {
+    align-items: center;
+    background-color: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 2px;
+    padding: 2px;
+}
+
+.theme-toggle__button {
+    align-items: center;
+    background-color: transparent;
+    border: 0;
+    border-radius: var(--radius-pill);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    height: 26px;
+    justify-content: center;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    width: 30px;
+}
+
+.theme-toggle__button:hover {
+    color: var(--text);
+}
+
+.theme-toggle__button[aria-pressed="true"] {
+    background-color: var(--surface);
+    box-shadow: var(--shadow-xs);
+    color: var(--text);
 }
 
 .topbar-link {
@@ -523,9 +567,7 @@ code, kbd, samp {
 
 :root { --text-on-status: #ffffff; }
 
-@media (prefers-color-scheme: dark) {
-    :root { --text-on-status: #10141c; }
-}
+:root[data-theme="dark"] { --text-on-status: #10141c; }
 
 /* Buttons ------------------------------------------------------------------ */
 
@@ -706,10 +748,8 @@ select.form-control {
     padding-right: 2rem;
 }
 
-@media (prefers-color-scheme: dark) {
-    select.form-control {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23a7b0c0'%3E%3Cpath d='M8 11.5 3.5 7h9z'/%3E%3C/svg%3E");
-    }
+:root[data-theme="dark"] select.form-control {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23a7b0c0'%3E%3Cpath d='M8 11.5 3.5 7h9z'/%3E%3C/svg%3E");
 }
 
 .form-grid {
@@ -1457,6 +1497,9 @@ select.invalid,
     .app-topbar { position: static; }
 
     .app-topbar__note { display: none; }
+
+    /* The same links live in the navigation menu, so the top bar keeps only the theme control. */
+    .app-topbar__links { display: none; }
 
     .nav-toggle-button { display: inline-flex; }
 

@@ -73,8 +73,10 @@ Data flow: `Pages` → `IGroceryService` → `IGroceryRepository` → `IGroceryS
 The interface is built on a token driven design system in `GroceryApp/wwwroot/app.css`
 (colour, type scale, spacing, radii, elevation), so no component hardcodes a colour:
 
-- **Light and dark themes** are derived from the same tokens through `prefers-color-scheme` -
-  there is no theme toggle to keep in sync.
+- **Light and dark themes** come from the same tokens and are selectable with a three state control
+  in the top bar (Light / Dark / System). The choice is stored in `localStorage` and applied by an
+  inline script before first paint, so a dark preference never flashes light; **System** tracks
+  `prefers-color-scheme` live, and an explicit choice always wins over the OS setting.
 - **Semantic component classes** (`panel`, `stat-tile`, `item-row`, `chip`, `stepper`) rather than
   utility soup, with the Bootstrap components still used by the markup restyled onto the tokens.
 - **Iconography** comes from an inlined SVG sprite (`wwwroot/icons.svg`, built from Bootstrap Icons,

@@ -1,0 +1,53 @@
+@inject IJSRuntime JSRuntime
+
+@* Three state theme control: an explicit light or dark choice, or follow the operating system. *@
+<div class="theme-toggle" role="group" aria-label="Colour theme">
+    @foreach (var option in Options)
+    {
+        <button type="button"
+                class="theme-toggle__button"
+                aria-pressed="@(preference == option.Value ? "true" : "false")"
+                title="@option.Label"
+                @onclick="() => SetThemeAsync(option.Value)">
+            <Icon Name="@option.Icon" CssClass="icon-sm" />
+            <span class="visually-hidden">@option.Label</span>
+        </button>
+    }
+</div>
+
+@code {
+    private static readonly (string Value, string Label, string Icon)[] Options =
+    {
+        ("light", "Light theme", "sun-fill"),
+        ("dark", "Dark theme", "moon-stars-fill"),
+        ("system", "Match the system theme", "display")
+    };
+
+    private string preference = "system";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // index.html resolves the theme before paint; read that choice back so the control shows the
+        // correct pressed state on its first render instead of flipping a frame later.
+        try
+        {
+            preference = await JSRuntime.InvokeAsync<string>("groceryTheme.get");
+        }
+        catch (JSException ex)
+        {
+            Console.WriteLine($"Theme preference could not be read: {ex.Message}");
+        }
+    }
+
+    private async Task SetThemeAsync(string value)
+    {
+        try
+        {
+            preference = await JSRuntime.InvokeAsync<string>("groceryTheme.set", value);
+        }
+        catch (JSException ex)
+        {
+            Console.WriteLine($"Theme could not be changed: {ex.Message}");
+        }
+    }
+}
