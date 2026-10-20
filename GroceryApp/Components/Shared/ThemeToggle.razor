@@ -33,9 +33,11 @@
         {
             preference = await JSRuntime.InvokeAsync<string>("groceryTheme.get");
         }
-        catch (JSException ex)
+        catch (JSException)
         {
-            Console.WriteLine($"Theme preference could not be read: {ex.Message}");
+            // theme.js is unavailable (for example a browser still holding a cached index.html from
+            // before this feature). The control falls back to the "system" state silently - logging
+            // here would only add noise to the visitor's console for a self-healing cache condition.
         }
     }
 
@@ -45,9 +47,10 @@
         {
             preference = await JSRuntime.InvokeAsync<string>("groceryTheme.set", value);
         }
-        catch (JSException ex)
+        catch (JSException)
         {
-            Console.WriteLine($"Theme could not be changed: {ex.Message}");
+            // See above: without theme.js the toggle cannot persist a choice, so leave the current
+            // state untouched rather than showing an error the visitor cannot act on.
         }
     }
 }
